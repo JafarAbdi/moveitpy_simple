@@ -1,6 +1,10 @@
 # Used with vcstool, users can download and source of all packages in this.
 repositories:
   moveitpy_simple:
-     type: git
-     url: git@github.com:JafarAbdi/moveitpy_simple.git
-     version: main
+    type: git
+    url: git@github.com:JafarAbdi/moveitpy_simple.git
+    version: main
+  moveit2:
+    type: git
+    url: https://github.com/ros-planning/moveit2.git
+    version: main
