@@ -2,7 +2,7 @@
 repositories:
   moveitpy_simple:
     type: git
-    url: git@github.com:JafarAbdi/moveitpy_simple.git
+    url: https://github.com/JafarAbdi/moveitpy_simple.git
     version: main
   moveit2:
     type: git
