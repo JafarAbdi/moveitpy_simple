@@ -21,6 +21,7 @@ jobs:
       ROS_REPO: main
       CI_NAME: build-and-test
       DOCKER_IMAGE: moveit/moveit2:humble-source
+      UNDERLAY: /root/ws_moveit/install
       # UPSTREAM_WORKSPACE: moveitpy_simple.repos
     runs-on: ubuntu-latest
     steps:
