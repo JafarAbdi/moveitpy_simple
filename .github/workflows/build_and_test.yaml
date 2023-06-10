@@ -15,16 +15,16 @@ jobs:
   industrial_ci:
     strategy:
       fail-fast: false
-      matrix:
-        env:
-          - CI_NAME: build-and-test
 
     env:
       ROS_DISTRO: humble
       ROS_REPO: main
+      CI_NAME: build-and-test
+      DOCKER_IMAGE: moveit/moveit2:humble-source
+      UNDERLAY: /root/ws_moveit/install
+      # UPSTREAM_WORKSPACE: moveitpy_simple.repos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       # Run industrial_ci
       - uses: 'ros-industrial/industrial_ci@master'
-        env: ${{ matrix.env }}

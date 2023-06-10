@@ -2,9 +2,5 @@
 repositories:
   moveitpy_simple:
     type: git
-    url: git@github.com:JafarAbdi/moveitpy_simple.git
-    version: main
-  moveit2:
-    type: git
-    url: https://github.com/ros-planning/moveit2.git
+    url: https://github.com/JafarAbdi/moveitpy_simple.git
     version: main
