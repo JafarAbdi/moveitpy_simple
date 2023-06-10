@@ -11,7 +11,7 @@
   <url type="bugtracker">https://github.com/JafarAbdi/moveitpy_simple/issues</url>
   <url type="repository">https://github.com/JafarAbdi/moveitpy_simple/</url>
   <depend>rclpy</depend>
-  <build_type>moveit_py</build_type>
+  <build_depend>moveit_py</build_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>python3-pytest</test_depend>
   <export>
