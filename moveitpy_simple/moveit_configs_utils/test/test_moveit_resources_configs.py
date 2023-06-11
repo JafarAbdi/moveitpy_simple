@@ -5,10 +5,10 @@ import re
 from pathlib import Path
 
 import pytest
-from launch_param_builder.utils import ParameterBuilderFileNotFoundError
+from moveitpy_simple.moveit_configs_utils.file_loaders import FileNotFoundError
 
-from moveit_configs_utils import MoveItConfigsBuilder
-from moveit_configs_utils.moveit_configs_builder import (
+from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
+from moveitpy_simple.moveit_configs_utils.moveit_configs_builder import (
     ConfigSections,
     PackageNotFoundError,
     extend_configs,
@@ -54,7 +54,7 @@ def test_moveit_resources_configs():
                 builder.sensors(file_path="config/sensors_3d.yaml")
             builder.joint_limits(file_path="config/joint_limits.yaml")
 
-            with pytest.raises(ParameterBuilderFileNotFoundError):
+            with pytest.raises(FileNotFoundError):
                 builder.moveit_cpp(file_path="config/moveit_cpp.yaml")
 
             assert builder._robot_description_config is not None
