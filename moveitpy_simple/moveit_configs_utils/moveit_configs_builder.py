@@ -767,7 +767,7 @@ class MoveItConfigsBuilder:
 
         if self._planning_pipelines_config:
             moveit_configs.planning_pipelines = {
-                "planning_pipelines": self._planning_pipelines_config.pipelines,
+                "planning_pipelines.pipeline_names": self._planning_pipelines_config.pipelines,
                 "default_planning_pipeline": self._planning_pipelines_config.default_planning_pipeline,
             }
             for pipeline, pipeline_config in zip(
