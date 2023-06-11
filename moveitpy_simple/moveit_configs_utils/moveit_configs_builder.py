@@ -258,6 +258,7 @@ class ConfigSections(str, Enum):
     JOINT_LIMITS = "joint_limits"
     TRAJECTORY_EXECUTION = "trajectory_execution"
     PLANNING_PIPELINES = "planning_pipelines"
+    PILZ_CARTESIAN_LIMITS = "pilz_cartesian_limits"
 
 
 @dataclass(slots=True)
@@ -320,9 +321,12 @@ class MoveItConfigs:
         parameters.update(self.moveit_cpp)
         # Update robot_description_planning with pilz cartesian limits
         if self.pilz_cartesian_limits:
-            parameters["robot_description_planning"].update(
-                self.pilz_cartesian_limits["robot_description_planning"],
-            )
+            if parameters.get("robot_description_planning") is not None:
+                parameters["robot_description_planning"].update(
+                    self.pilz_cartesian_limits,
+                )
+            else:
+                parameters["robot_description_planning"] = self.pilz_cartesian_limits
         return parameters
 
 
@@ -338,6 +342,7 @@ class MoveItConfigsBuilder:
     _planning_pipelines_config: PlanningPipelinesConfigEntry | None = None
     _trajectory_execution_config: ConfigEntry | None = None
     _sensors_config: ConfigEntry | None = None
+    _pilz_cartesian_limits_config: ConfigEntry | None = None
     _joint_limits_config: ConfigEntry | None = None
     _moveit_cpp_config: ConfigEntry | None = None
     _default_configs: dict = field(default_factory=dict)
@@ -671,22 +676,30 @@ class MoveItConfigsBuilder:
 
         return self
 
-    # def pilz_cartesian_limits(
-    #     self, file_path: Optional[str] = None, mappings: Optional[dict] = None
-    # ):
-    #     """Load cartesian limits.
+    def pilz_cartesian_limits(
+        self,
+        file_path: str | None = None,
+        mappings: dict | None = None,
+    ) -> "MoveItConfigsBuilder":
+        """Load pilz cartesian limits parameters.
 
-    #     :param file_path: Absolute or relative path to the cartesian limits file (w.r.t. robot_name_moveit_config).
-    #     :return: Instance of MoveItConfigsBuilder with pilz_cartesian_limits loaded.
-    #     """
-    #     moveit_configs.pilz_cartesian_limits = {
-    #         "robot_description_planning": load_yaml(
-    #             self.package_path
-    #             / (
-    #                 file_path
-    #                 or config_dir_path / DefaultConfigFiles.PILZ_CARTESIAN_LIMITS
-    #             ),
-    #             mappings,
+        Args:
+            file_path: Absolute or relative path to the pilz cartesian limits yaml file (w.r.t. robot_name_moveit_config).
+            mappings: Mappings to be passed when loading the yaml file.
+
+        Returns:
+            Instance of MoveItConfigsBuilder with pilz cartesian limits loaded.
+        """
+        if file_path:
+            self._pilz_cartesian_limits_config = self._make_config_entry_from_file(
+                self.package_path / file_path,
+                mappings,
+            )
+        else:
+            self._pilz_cartesian_limits_config = self._make_config_entry_from_section(
+                ConfigSections.PILZ_CARTESIAN_LIMITS,
+            )
+        return self
 
     def to_moveit_configs(self) -> MoveItConfigs:  # noqa: C901, PLR0912
         """Get MoveIt configs from ROBOT_NAME_moveit_config.
@@ -794,6 +807,9 @@ class MoveItConfigsBuilder:
             )
 
         # if not moveit_configs.planning_scene_monitor:
-        # if "pilz_industrial_motion_planner" in moveit_configs.planning_pipelines:
-        #     if not moveit_configs.pilz_cartesian_limits:
+        if self._pilz_cartesian_limits_config is not None:
+            moveit_configs.pilz_cartesian_limits = load_yaml(
+                self._pilz_cartesian_limits_config.path,
+                mappings=self._pilz_cartesian_limits_config.mappings,
+            )
         return moveit_configs
