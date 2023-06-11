@@ -106,14 +106,14 @@ import ament_index_python.packages as ament_packages
 import toml
 from ament_index_python.packages import get_package_share_directory
 from launch.some_substitutions_type import SomeSubstitutionsType
+from launch_ros.parameter_descriptions import ParameterValue
+from moveit_configs_utils.substitutions import Xacro
+
 from moveitpy_simple.moveit_configs_utils.file_loaders import (
     load_xacro,
     load_yaml,
     raise_if_file_not_found,
 )
-from launch_ros.parameter_descriptions import ParameterValue
-
-from moveit_configs_utils.substitutions import Xacro
 
 
 class PackageNotFoundError(KeyError):
