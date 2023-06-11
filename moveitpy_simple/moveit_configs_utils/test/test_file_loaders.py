@@ -1,3 +1,5 @@
+"""Test file loaders."""
+
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +10,7 @@ dir_path = Path(__file__).parent.absolute()
 
 
 def test_laod_yaml():
+    """Test load_yaml with mappings."""
     yaml_file = load_yaml(
         dir_path / "parameters_template.yaml",
         mappings={
@@ -29,7 +32,9 @@ def test_laod_yaml():
 
 
 def test_load_file():
+    """Test load_file with mappings."""
     file_content = load_file(
-        dir_path / "parameter_file_template", mappings={"test_name": "testing"},
+        dir_path / "parameter_file_template",
+        mappings={"test_name": "testing"},
     )
     assert file_content == "This's a template parameter file testing"

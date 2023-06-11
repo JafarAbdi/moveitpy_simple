@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
-from moveitpy_simple.moveit_configs_utils.file_loaders import FileNotFoundError
 from moveitpy_simple.moveit_configs_utils.moveit_configs_builder import (
     ConfigSections,
     PackageNotFoundError,
