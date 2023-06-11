@@ -1,0 +1,24 @@
+[moveit_configs]
+robot_description = "config/kermit.urdf"
+robot_description_semantic = "config/kermit.srdf"
+robot_description_kinematics = "config/kinematics.yaml"
+joint_limits = "config/joint_limits.yaml"
+planning_pipelines.ompl = "config/ompl_planning.yaml"
+planning_pipelines.chomp = "config/chomp_planning.yaml"
+planning_pipelines.lerp = "config/lerp_planning.yaml"
+planning_pipelines.trajopt = "config/trajopt_planning.yaml"
+trajectory_execution = "config/moveit_controllers.yaml"
+sensors = "config/sensors_kinect_pointcloud.yaml"
+
+[robot_description]
+robot_name = "kermit"
+robot_model_type = "urdf"
+
+[robot_description_semantic]
+group_type = "chain"
+
+[planning_pipelines.ompl]
+group_name = "arm"
+
+[planning_pipelines.chomp]
+group_type = "chain"

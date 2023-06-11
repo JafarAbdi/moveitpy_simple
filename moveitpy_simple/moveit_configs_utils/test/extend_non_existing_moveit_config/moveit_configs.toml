@@ -1,0 +1,2 @@
+[moveit_configs]
+extend = "non_existing_package"
