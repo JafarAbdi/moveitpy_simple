@@ -394,7 +394,7 @@ class MoveItConfigsBuilder:
             ConfigEntry: A ConfigEntry object.
         """
         if not self._default_configs:
-            msg = "Default configs are not loaded. Please provide a moveit_configs.toml file."
+            msg = f"Default configs are not loaded. Please provide a moveit_configs.toml file, or explicitly pass the file_path when loading MoveItConfigsBuilder('...').{section}(file_path='...')."
             raise RuntimeError(
                 msg,
             )
