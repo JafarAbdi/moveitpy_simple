@@ -12,6 +12,12 @@
   <url type="repository">https://github.com/JafarAbdi/moveitpy_simple/</url>
   <depend>rclpy</depend>
   <build_depend>moveit_py</build_depend>
+  <exec_depend>python3-jinja2</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>srdfdom</exec_depend>
+  <exec_depend>python3-toml</exec_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>python3-pytest</test_depend>
   <export>

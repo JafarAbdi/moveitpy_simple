@@ -1,0 +1,9 @@
+[moveit_configs]
+extend = "../robot_moveit_config"
+robot_description = "config/kermit2.urdf"
+robot_description_kinematics = "config/kinematics2.yaml"
+joint_limits = "config/joint_limits2.yaml"
+planning_pipelines.ompl = "config/ompl_planning2.yaml"
+
+[robot_description]
+robot_name = "kermit2"

@@ -1,0 +1,2 @@
+panda_arm:
+  kinematics_solver: pick_ik/PickIkPlugin
