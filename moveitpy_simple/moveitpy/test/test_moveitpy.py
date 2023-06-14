@@ -67,7 +67,8 @@ def test_moveitpy():
     }
     assert np.allclose(moveitpy.get_gripper_joint_positions(), [0.035])
     assert np.allclose(
-        moveitpy.get_arm_joint_positions(), [-1.5, -1.7628, 2.8, 0.0, 0.0, 3.7525, 0.5],
+        moveitpy.get_arm_joint_positions(),
+        [-1.5, -1.7628, 2.8, 0.0, 0.0, 3.7525, 0.5],
     )
     assert np.allclose(
         moveitpy.get_joint_positions(),
@@ -138,7 +139,8 @@ def test_moveitpy():
     assert np.allclose(
         moveitpy.joint_positions_from_robot_state(rs, moveitpy.arm_joint_names),
         moveitpy.joint_positions_from_robot_state(
-            plan_result.trajectory[0], moveitpy.arm_joint_names,
+            plan_result.trajectory[0],
+            moveitpy.arm_joint_names,
         ),
         atol=1e-2,
     )

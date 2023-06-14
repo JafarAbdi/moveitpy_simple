@@ -166,7 +166,10 @@ class MoveItPySimple:
         return self.planning_scene().current_state
 
     def joint_positions_from_robot_state(
-        self, robot_state: RobotState, joint_names: list[str], normalized: bool = False,
+        self,
+        robot_state: RobotState,
+        joint_names: list[str],
+        normalized: bool = False,
     ) -> np.ndarray:
         joint_positions = []
         for joint_name in joint_names:
@@ -181,13 +184,17 @@ class MoveItPySimple:
     def get_arm_joint_positions(self, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the arm joint model group."""
         return self.joint_positions_from_robot_state(
-            self.robot_state(), self.arm_joint_names, normalized,
+            self.robot_state(),
+            self.arm_joint_names,
+            normalized,
         )
 
     def get_gripper_joint_positions(self, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the gripper joint model group."""
         return self.joint_positions_from_robot_state(
-            self.robot_state(), self.gripper_joint_names, normalized,
+            self.robot_state(),
+            self.gripper_joint_names,
+            normalized,
         )
 
     def get_gripper_state(self) -> np.ndarray:
@@ -195,7 +202,9 @@ class MoveItPySimple:
         gripper_joint_positions = self.get_gripper_joint_positions()
         gripper_state = []
         for joint_name, gripper_joint_position in zip(
-            self.gripper_joint_names, gripper_joint_positions, strict=True,
+            self.gripper_joint_names,
+            gripper_joint_positions,
+            strict=True,
         ):
             gripper_state.append(
                 self._gripper_joint_position_to_fraction[joint_name](
@@ -230,11 +239,14 @@ class MoveItPySimple:
     def set_goal_from_pose_stamped(self, pose_stamped: PoseStamped, link_name: str):
         """Set the goal to a pose stamped."""
         self._arm_planning_component.set_goal_state(
-            pose_stamped_msg=pose_stamped, pose_link=link_name,
+            pose_stamped_msg=pose_stamped,
+            pose_link=link_name,
         )
 
     def set_goal_from_joint_positions(
-        self, joint_positions: dict[str, float] | list[float], normalized: bool = False,
+        self,
+        joint_positions: dict[str, float] | list[float],
+        normalized: bool = False,
     ):
         """Set the goal to a joint positions."""
         goal_joint_positions = {}
@@ -248,7 +260,9 @@ class MoveItPySimple:
                 goal_joint_positions = joint_positions
         if isinstance(joint_positions, list):
             for joint_name, joint_position in zip(
-                self.arm_joint_names, joint_positions, strict=True,
+                self.arm_joint_names,
+                joint_positions,
+                strict=True,
             ):
                 goal_joint_positions[joint_name] = (
                     self._joint_positions_denormalizers[joint_name](joint_position)
@@ -276,7 +290,9 @@ class MoveItPySimple:
         elif isinstance(robot_state, RobotState):
             self._arm_planning_component.set_start_state(robot_state=robot_state)
         else:
-            msg = f"robot_state must be a string or a RobotState, got {type(robot_state)}"
+            msg = (
+                f"robot_state must be a string or a RobotState, got {type(robot_state)}"
+            )
             raise TypeError(
                 msg,
             )
