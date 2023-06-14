@@ -1,3 +1,5 @@
+"""Tests for the MoveItPySimple class."""
+
 from copy import deepcopy
 
 import numpy as np
@@ -7,8 +9,12 @@ from std_msgs.msg import Header
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
 from moveitpy_simple.moveitpy import MoveItPySimple
 
+PANDA_GRIPPER_NUM_JOINTS = 1
+PANDA_NUM_JOINTS = 7
+
 
 def test_moveitpy():
+    """Test the MoveItPySimple class."""
     moveitpy = MoveItPySimple(
         "moveitpy_simple",
         MoveItConfigsBuilder(package="moveit_resources_panda_moveit_config")
@@ -50,9 +56,12 @@ def test_moveitpy():
         "panda_joint7",
         "panda_finger_joint1",
     ]
-    assert len(moveitpy.get_gripper_joint_positions()) == 1
-    assert len(moveitpy.get_arm_joint_positions()) == 7
-    assert len(moveitpy.get_joint_positions()) == 8
+    assert len(moveitpy.get_gripper_joint_positions()) == PANDA_GRIPPER_NUM_JOINTS
+    assert len(moveitpy.get_arm_joint_positions()) == PANDA_NUM_JOINTS
+    assert (
+        len(moveitpy.get_joint_positions())
+        == PANDA_NUM_JOINTS + PANDA_GRIPPER_NUM_JOINTS
+    )
     rs = moveitpy.robot_state()
     # TODO: Add a test with the robotiq gripper
     rs.joint_positions = {

@@ -1,3 +1,5 @@
+"""A simple wrapper around MoveItPy."""
+
 from copy import deepcopy
 from enum import Enum
 from functools import partial
@@ -8,6 +10,9 @@ from geometry_msgs.msg import PoseStamped
 from moveit.core.kinematic_constraints import construct_joint_constraint
 from moveit.core.planning_interface import MotionPlanResponse
 from moveit.core.planning_scene import PlanningScene
+
+if TYPE_CHECKING:
+    from moveit.core.robot_model import JointModelGroup, RobotModel
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from moveit.planning import MoveItPy, PlanningComponent
@@ -15,11 +20,10 @@ from moveit_msgs.msg import Constraints
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigs
 
-if TYPE_CHECKING:
-    from moveit.core.robot_model import JointModelGroup, RobotModel
-
 
 class GripperState(str, Enum):
+    """Gripper states."""
+
     OPEN = "open"
     CLOSE = "close"
 
@@ -33,6 +37,9 @@ class GripperState(str, Enum):
 # TODO: Make it possible to load directly from a package name
 # TODO: Make gripper optional?
 class MoveItPySimple:
+    """A class to simplify the usage of MoveItPy."""
+
+    # TODO: Remove the need for the moveit_configs/arm_group_name/gripper_group_name
     def __init__(
         self,
         node_name: str,
@@ -40,6 +47,7 @@ class MoveItPySimple:
         arm_group_name: str,
         gripper_group_name: str,
     ) -> None:
+        """Initialize the MoveItPySimple class."""
         self._moveit_py = MoveItPy(node_name, config_dict=moveit_configs.to_dict())
         self._robot_model: RobotModel = self._moveit_py.get_robot_model()
         if not self._robot_model.has_joint_model_group(arm_group_name):
@@ -141,17 +149,17 @@ class MoveItPySimple:
             )
 
     @property
-    def arm_joint_names(self):
+    def arm_joint_names(self) -> list[str]:
         """Active joint names for the arm joint model group."""
         return self._arm_joint_model_group.active_joint_model_names
 
     @property
-    def gripper_joint_names(self):
+    def gripper_joint_names(self) -> list[str]:
         """Active joint names for the hand joint model group."""
         return self._gripper_joint_model_group.active_joint_model_names
 
     @property
-    def joint_names(self):
+    def joint_names(self) -> list[str]:
         """Active joint names for the robot."""
         return self.arm_joint_names + self.gripper_joint_names
 
@@ -169,8 +177,10 @@ class MoveItPySimple:
         self,
         robot_state: RobotState,
         joint_names: list[str],
+        *,
         normalized: bool = False,
     ) -> np.ndarray:
+        """Get the joint positions from the robot state for the given joint names."""
         joint_positions = []
         for joint_name in joint_names:
             joint_position = robot_state.joint_positions[joint_name]
@@ -181,20 +191,20 @@ class MoveItPySimple:
             )
         return np.asarray(joint_positions)
 
-    def get_arm_joint_positions(self, normalized: bool = False) -> np.ndarray:
+    def get_arm_joint_positions(self, *, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the arm joint model group."""
         return self.joint_positions_from_robot_state(
             self.robot_state(),
             self.arm_joint_names,
-            normalized,
+            normalized=normalized,
         )
 
-    def get_gripper_joint_positions(self, normalized: bool = False) -> np.ndarray:
+    def get_gripper_joint_positions(self, *, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the gripper joint model group."""
         return self.joint_positions_from_robot_state(
             self.robot_state(),
             self.gripper_joint_names,
-            normalized,
+            normalized=normalized,
         )
 
     def get_gripper_state(self) -> np.ndarray:
@@ -212,12 +222,12 @@ class MoveItPySimple:
         ]
         return np.asarray(gripper_state)
 
-    def get_joint_positions(self, normalized=False) -> np.ndarray:
+    def get_joint_positions(self, *, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the arm and gripper joint model groups."""
         return np.concatenate(
             (
-                self.get_arm_joint_positions(normalized),
-                self.get_gripper_joint_positions(normalized),
+                self.get_arm_joint_positions(normalized=normalized),
+                self.get_gripper_joint_positions(normalized=normalized),
             ),
         )
 
@@ -227,15 +237,19 @@ class MoveItPySimple:
     # - Max velocity scaling factor
     # - Max acceleration scaling factor
     # TODO: computeCartesianPath -- Need a pybind11 support first
-    def set_goal_from_named_state(self, named_state: str):
+    def set_goal_from_named_state(self, named_state: str) -> None:
         """Set the goal to a named state."""
         self._arm_planning_component.set_goal_state(configuration_name=named_state)
 
-    def set_goal_from_robot_state(self, robot_state: RobotState):
+    def set_goal_from_robot_state(self, robot_state: RobotState) -> None:
         """Set the goal to a robot state."""
         self._arm_planning_component.set_goal_state(robot_state=robot_state)
 
-    def set_goal_from_pose_stamped(self, pose_stamped: PoseStamped, link_name: str):
+    def set_goal_from_pose_stamped(
+        self,
+        pose_stamped: PoseStamped,
+        link_name: str,
+    ) -> None:
         """Set the goal to a pose stamped."""
         self._arm_planning_component.set_goal_state(
             pose_stamped_msg=pose_stamped,
@@ -245,8 +259,9 @@ class MoveItPySimple:
     def set_goal_from_joint_positions(
         self,
         joint_positions: dict[str, float] | list[float],
+        *,
         normalized: bool = False,
-    ):
+    ) -> None:
         """Set the goal to a joint positions."""
         goal_joint_positions = {}
         if isinstance(joint_positions, dict):
@@ -278,11 +293,11 @@ class MoveItPySimple:
             motion_plan_constraints=[joint_constraint],
         )
 
-    def set_goal_from_constraints(self, constraints: list[Constraints]):
+    def set_goal_from_constraints(self, constraints: list[Constraints]) -> None:
         """Set the goal to a set of constraints."""
         self._arm_planning_component.set_goal_state(motion_plan_constraints=constraints)
 
-    def set_start_state(self, robot_state: RobotState | str):
+    def set_start_state(self, robot_state: RobotState | str) -> None:
         """Set the start state."""
         if isinstance(robot_state, str):
             self._arm_planning_component.set_start_state(configuration_name=robot_state)
@@ -304,7 +319,7 @@ class MoveItPySimple:
         """Plan a trajectory to the goal."""
         return self._arm_planning_component.plan()
 
-    def execute(self, trajectory: RobotTrajectory):
+    def execute(self, trajectory: RobotTrajectory) -> None:
         """Execute a trajectory."""
         self._moveit_py.execute(trajectory, controllers=[])
 
