@@ -1,23 +1,22 @@
-import numpy as np
-from functools import partial
 from copy import deepcopy
 from enum import Enum
+from functools import partial
+from typing import TYPE_CHECKING
 
+import numpy as np
 from geometry_msgs.msg import PoseStamped
 from moveit.core.kinematic_constraints import construct_joint_constraint
-from moveit_msgs.msg import Constraints
-
-from moveit.planning import MoveItPy
+from moveit.core.planning_interface import MotionPlanResponse
 from moveit.core.planning_scene import PlanningScene
-from moveit.core.robot_model import RobotModel
 from moveit.core.robot_state import RobotState
-from moveit.core.robot_model import JointModelGroup
 from moveit.core.robot_trajectory import RobotTrajectory
 from moveit.planning import MoveItPy, PlanningComponent
-from moveit.core.planning_interface import MotionPlanResponse
-
+from moveit_msgs.msg import Constraints
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigs
+
+if TYPE_CHECKING:
+    from moveit.core.robot_model import JointModelGroup, RobotModel
 
 
 class GripperState(str, Enum):
@@ -27,8 +26,6 @@ class GripperState(str, Enum):
 
 # TODO: I think we should have a class to wrap the arm and gripper planning components
 # gripper.open() Do we really need these? The move should be enough
-# gripper.close()
-# gripper.move(0.5) # 1.0 is open, 0.0 is closed
 # gripper.move_async()?
 
 
@@ -46,12 +43,14 @@ class MoveItPySimple:
         self._moveit_py = MoveItPy(node_name, config_dict=moveit_configs.to_dict())
         self._robot_model: RobotModel = self._moveit_py.get_robot_model()
         if not self._robot_model.has_joint_model_group(arm_group_name):
+            msg = f"Robot model does not have group {arm_group_name} defined"
             raise ValueError(
-                f"Robot model does not have group {arm_group_name} defined"
+                msg,
             )
         if not self._robot_model.has_joint_model_group(gripper_group_name):
+            msg = f"Robot model does not have group {gripper_group_name} defined"
             raise ValueError(
-                f"Robot model does not have group {gripper_group_name} defined"
+                msg,
             )
         self._arm_joint_model_group: JointModelGroup = (
             self._robot_model.get_joint_model_group(arm_group_name)
@@ -71,8 +70,9 @@ class MoveItPySimple:
                 gripper_state.value
                 not in self._gripper_planning_component.named_target_states
             ):
+                msg = f"Gripper joint model group does not have named target {gripper_state.value}"
                 raise ValueError(
-                    f"Gripper joint model group does not have named target {gripper_state.value}"
+                    msg,
                 )
 
         fraction_range = [0, 1]
@@ -106,12 +106,12 @@ class MoveItPySimple:
         self._gripper_joint_position_to_fraction = {}
         gripper_open_joint_positions = (
             self._gripper_planning_component.get_named_target_state_values(
-                GripperState.OPEN
+                GripperState.OPEN,
             )
         )
         gripper_close_joint_positions = (
             self._gripper_planning_component.get_named_target_state_values(
-                GripperState.CLOSE
+                GripperState.CLOSE,
             )
         )
         for joint_name in self.gripper_joint_names:
@@ -166,7 +166,7 @@ class MoveItPySimple:
         return self.planning_scene().current_state
 
     def joint_positions_from_robot_state(
-        self, robot_state: RobotState, joint_names: list[str], normalized: bool = False
+        self, robot_state: RobotState, joint_names: list[str], normalized: bool = False,
     ) -> np.ndarray:
         joint_positions = []
         for joint_name in joint_names:
@@ -174,20 +174,20 @@ class MoveItPySimple:
             joint_positions.append(
                 self._joint_positions_normalizers[joint_name](joint_position)
                 if normalized
-                else joint_position
+                else joint_position,
             )
         return np.asarray(joint_positions)
 
     def get_arm_joint_positions(self, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the arm joint model group."""
         return self.joint_positions_from_robot_state(
-            self.robot_state(), self.arm_joint_names, normalized
+            self.robot_state(), self.arm_joint_names, normalized,
         )
 
     def get_gripper_joint_positions(self, normalized: bool = False) -> np.ndarray:
         """Get current joint positions for the gripper joint model group."""
         return self.joint_positions_from_robot_state(
-            self.robot_state(), self.gripper_joint_names, normalized
+            self.robot_state(), self.gripper_joint_names, normalized,
         )
 
     def get_gripper_state(self) -> np.ndarray:
@@ -195,12 +195,12 @@ class MoveItPySimple:
         gripper_joint_positions = self.get_gripper_joint_positions()
         gripper_state = []
         for joint_name, gripper_joint_position in zip(
-            self.gripper_joint_names, gripper_joint_positions, strict=True
+            self.gripper_joint_names, gripper_joint_positions, strict=True,
         ):
             gripper_state.append(
                 self._gripper_joint_position_to_fraction[joint_name](
-                    gripper_joint_position
-                )
+                    gripper_joint_position,
+                ),
             )
         return np.asarray(gripper_state)
 
@@ -230,11 +230,11 @@ class MoveItPySimple:
     def set_goal_from_pose_stamped(self, pose_stamped: PoseStamped, link_name: str):
         """Set the goal to a pose stamped."""
         self._arm_planning_component.set_goal_state(
-            pose_stamped_msg=pose_stamped, pose_link=link_name
+            pose_stamped_msg=pose_stamped, pose_link=link_name,
         )
 
     def set_goal_from_joint_positions(
-        self, joint_positions: dict[str, float] | list[float], normalized: bool = False
+        self, joint_positions: dict[str, float] | list[float], normalized: bool = False,
     ):
         """Set the goal to a joint positions."""
         goal_joint_positions = {}
@@ -248,7 +248,7 @@ class MoveItPySimple:
                 goal_joint_positions = joint_positions
         if isinstance(joint_positions, list):
             for joint_name, joint_position in zip(
-                self.arm_joint_names, joint_positions, strict=True
+                self.arm_joint_names, joint_positions, strict=True,
             ):
                 goal_joint_positions[joint_name] = (
                     self._joint_positions_denormalizers[joint_name](joint_position)
@@ -262,7 +262,7 @@ class MoveItPySimple:
             joint_model_group=self._arm_joint_model_group,
         )
         self._arm_planning_component.set_goal_state(
-            motion_plan_constraints=[joint_constraint]
+            motion_plan_constraints=[joint_constraint],
         )
 
     def set_goal_from_constraints(self, constraints: list[Constraints]):
@@ -276,8 +276,9 @@ class MoveItPySimple:
         elif isinstance(robot_state, RobotState):
             self._arm_planning_component.set_start_state(robot_state=robot_state)
         else:
+            msg = f"robot_state must be a string or a RobotState, got {type(robot_state)}"
             raise TypeError(
-                f"robot_state must be a string or a RobotState, got {type(robot_state)}"
+                msg,
             )
 
     def get_start_state(self) -> RobotState:
