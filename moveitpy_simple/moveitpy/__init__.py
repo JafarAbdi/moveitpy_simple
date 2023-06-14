@@ -200,17 +200,16 @@ class MoveItPySimple:
     def get_gripper_state(self) -> np.ndarray:
         """Get current gripper state."""
         gripper_joint_positions = self.get_gripper_joint_positions()
-        gripper_state = []
-        for joint_name, gripper_joint_position in zip(
-            self.gripper_joint_names,
-            gripper_joint_positions,
-            strict=True,
-        ):
-            gripper_state.append(
-                self._gripper_joint_position_to_fraction[joint_name](
-                    gripper_joint_position,
-                ),
+        gripper_state = [
+            self._gripper_joint_position_to_fraction[joint_name](
+                gripper_joint_position,
             )
+            for joint_name, gripper_joint_position in zip(
+                self.gripper_joint_names,
+                gripper_joint_positions,
+                strict=True,
+            )
+        ]
         return np.asarray(gripper_state)
 
     def get_joint_positions(self, normalized=False) -> np.ndarray:
