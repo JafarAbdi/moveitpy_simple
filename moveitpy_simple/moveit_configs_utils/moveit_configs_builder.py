@@ -716,9 +716,40 @@ class MoveItConfigsBuilder:
             )
         return self
 
-    # TODO: Add a function to load all default configs
-    # def load_all()?
-    # We need a way to throw an error if a user access a variable that hasn't been loaded yet
+    def load_all(self) -> "MoveItConfigsBuilder":
+        """Load all configs.
+
+        Returns:
+            Instance of MoveItConfigsBuilder with all configs loaded.
+        """
+        existing_configs = [
+            section
+            for section in ConfigSections
+            if self._default_configs.get(ConfigSections.MOVEIT_CONFIGS, {}).get(section)
+            is not None
+        ]
+        for config in existing_configs:
+            match config:
+                case ConfigSections.ROBOT_DESCRIPTION:
+                    self.robot_description()
+                case ConfigSections.ROBOT_DESCRIPTION_SEMANTIC:
+                    self.robot_description_semantic()
+                case ConfigSections.SENSORS:
+                    self.sensors()
+                case ConfigSections.MOVEIT_CPP:
+                    self.moveit_cpp()
+                case ConfigSections.ROBOT_DESCRIPTION_KINEMATICS:
+                    self.robot_description_kinematics()
+                case ConfigSections.JOINT_LIMITS:
+                    self.joint_limits()
+                case ConfigSections.TRAJECTORY_EXECUTION:
+                    self.trajectory_execution()
+                case ConfigSections.PLANNING_PIPELINES:
+                    self.planning_pipelines()
+                case ConfigSections.PILZ_CARTESIAN_LIMITS:
+                    self.pilz_cartesian_limits()
+        return self
+
     def to_moveit_configs(self) -> MoveItConfigs:  # noqa: C901, PLR0912
         """Get MoveIt configs from ROBOT_NAME_moveit_config.
 
