@@ -116,6 +116,21 @@ from moveitpy_simple.moveit_configs_utils.file_loaders import (
 )
 
 
+def normalize_path_value(value: str) -> Path:
+    """Normalize a package value, convert paths starting with package:// to absolute path.
+
+    Args:
+        value: Package name or path to package
+
+    Returns:
+        Package name
+    """
+    if isinstance(value, str) and value.startswith("package://"):
+        package_name, relative_path = value.split("package://")[1].split("/", 1)
+        return get_package_path(package_name) / relative_path
+    return value
+
+
 class PackageNotFoundError(KeyError):
     """Raised when a package is not found."""
 
@@ -217,14 +232,14 @@ def extend_configs(package_path: Path, configs: dict) -> dict:
             ).get(missing_section)
         ) is not None:
             if isinstance(missing_section_value, Path | str):
-                extended_moveit_configs[missing_section] = (
-                    base_package / missing_section_value
-                )
+                extended_moveit_configs[
+                    missing_section
+                ] = base_package / normalize_path_value(missing_section_value)
             elif isinstance(missing_section_value, dict):
                 resolved_missing_section_value = {
-                    key: base_package / value
+                    key: base_package / normalize_path_value(value)
                     if isinstance(value, Path | str)
-                    else value
+                    else normalize_path_value(value)
                     for key, value in missing_section_value.items()
                 }
                 extended_moveit_configs[
@@ -420,7 +435,7 @@ class MoveItConfigsBuilder:
             )
 
         return ConfigEntry(
-            path=self.package_path / value,
+            path=self.package_path / normalize_path_value(value),
             # Note we do XXX.get(...) or {} on purpose, we might have a section with a None value
             mappings=(self._default_configs.get(section) or {}).get(option, {})
             if option
@@ -701,6 +716,9 @@ class MoveItConfigsBuilder:
             )
         return self
 
+    # TODO: Add a function to load all default configs
+    # def load_all()?
+    # We need a way to throw an error if a user access a variable that hasn't been loaded yet
     def to_moveit_configs(self) -> MoveItConfigs:  # noqa: C901, PLR0912
         """Get MoveIt configs from ROBOT_NAME_moveit_config.
 

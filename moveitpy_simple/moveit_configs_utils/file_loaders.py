@@ -1,6 +1,7 @@
 """Utility functions for loading files and parsing them with jinja2."""
 
 import math
+from copy import deepcopy
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -63,5 +64,9 @@ def load_xacro(file_path: Path, mappings: dict | None = None) -> str:
     """Load a xacro file and render it with the given mappings."""
     raise_if_file_not_found(file_path)
 
-    file = xacro.process_file(file_path, mappings=mappings)
+    # We need to deepcopy the mappings because xacro.process_file modifies them
+    file = xacro.process_file(
+        file_path,
+        mappings=deepcopy(mappings) if mappings else {},
+    )
     return file.toxml()
