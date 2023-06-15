@@ -1,6 +1,7 @@
 """Tests for the MoveItPySimple class."""
 
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from geometry_msgs.msg import Point, Pose, PoseStamped
@@ -12,25 +13,15 @@ from moveitpy_simple.moveitpy import MoveItPySimple
 PANDA_GRIPPER_NUM_JOINTS = 1
 PANDA_NUM_JOINTS = 7
 
+path_dir = Path(__file__).parent
+
 
 def test_moveitpy():
     """Test the MoveItPySimple class."""
     moveitpy = MoveItPySimple(
         "moveitpy_simple",
-        MoveItConfigsBuilder(package="moveit_resources_panda_moveit_config")
-        .robot_description(file_path="config/panda.urdf.xacro")
-        .robot_description_kinematics(file_path="config/kinematics.yaml")
-        .robot_description_semantic(file_path="config/panda.srdf")
-        .joint_limits(file_path="config/joint_limits.yaml")
-        # TODO: Test execution of trajectory?
-        # .trajectory_execution(file_path="config/moveit_controllers.yaml")
-        .planning_pipelines(
-            pipelines=["ompl", "chomp", "pilz_industrial_motion_planner"],
-        )
-        .moveit_cpp(
-            file_path="/home/juruc/workspaces/ws_m2/src/moveitpy_simple/moveit_cpp.yaml",
-        )
-        .pilz_cartesian_limits(file_path="config/pilz_cartesian_limits.yaml")
+        MoveItConfigsBuilder(package=path_dir / "panda_moveit_config")
+        .load_all()
         .to_moveit_configs(),
         "panda_arm",
         "hand",

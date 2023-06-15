@@ -312,7 +312,7 @@ def test_extend_non_existing_package():
 def test_load_all():
     """Test automatically loading all configs from a package."""
     builder = MoveItConfigsBuilder(
-        package=Path(dir_path, "partial_panda_moveit_config")
+        package=Path(dir_path, "partial_panda_moveit_config"),
     ).load_all()
     assert (moveit_configs := builder.to_moveit_configs())
     assert moveit_configs.robot_description
@@ -330,7 +330,7 @@ def test_load_all():
     assert not moveit_configs.moveit_cpp
 
     builder = MoveItConfigsBuilder(
-        package=Path(dir_path, "panda_moveit_config")
+        package=Path(dir_path, "panda_moveit_config"),
     ).load_all()
     assert (moveit_configs := builder.to_moveit_configs())
     assert moveit_configs.robot_description
