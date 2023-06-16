@@ -73,6 +73,40 @@ def test_moveit_resources_configs():
             raise AssertionError(msg) from e
 
 
+def test_panda():
+    """Test loading a robot package by specifying its name."""
+    builder = (
+        MoveItConfigsBuilder(package=Path(dir_path, "panda_moveit_config"))
+        .robot_description()
+        .robot_description_semantic()
+        .robot_description_kinematics()
+        .planning_pipelines()
+        .trajectory_execution()
+        .sensors()
+        .joint_limits()
+    )
+    assert (moveit_configs := builder.to_moveit_configs()) is not None
+
+    builder = (
+        MoveItConfigsBuilder(package=Path(dir_path, "extend_local_panda_moveit_config"))
+        .robot_description()
+        .robot_description_semantic()
+        .robot_description_kinematics()
+        .planning_pipelines()
+        .trajectory_execution()
+        .sensors()
+        .joint_limits()
+    )
+
+    assert (moveit_configs := builder.to_moveit_configs()) is not None
+    assert (
+        moveit_configs.robot_description_kinematics["robot_description_kinematics"][
+            "panda_arm"
+        ]["kinematics_solver"]
+        == "pick_ik/PickIkPlugin"
+    )
+
+
 def test_robot():
     """Test loading a robot package by specifying its path."""
     builder = (
@@ -114,15 +148,17 @@ def test_extend():
     configs = load_moveit_configs_toml(robot_package_path)
     assert get_missing_configs(configs) == [
         ConfigSections.MOVEIT_CPP,
+        ConfigSections.PILZ_CARTESIAN_LIMITS,
     ]
 
     robot2_package_path = Path(dir_path, "robot2_moveit_config")
     configs = load_moveit_configs_toml(robot2_package_path)
-    assert len(get_missing_configs(configs)) == 4
+    assert len(get_missing_configs(configs)) == 5
 
     configs = extend_configs(robot2_package_path, configs)
     assert get_missing_configs(configs) == [
         ConfigSections.MOVEIT_CPP,
+        ConfigSections.PILZ_CARTESIAN_LIMITS,
     ]
     moveit_configs = configs[ConfigSections.MOVEIT_CONFIGS]
     assert moveit_configs[ConfigSections.ROBOT_DESCRIPTION] == "config/kermit2.urdf"
@@ -152,11 +188,12 @@ def test_extend():
 
     robot3_package_path = Path(dir_path, "robot3_moveit_config")
     configs = load_moveit_configs_toml(robot3_package_path)
-    assert len(get_missing_configs(configs)) == 7
+    assert len(get_missing_configs(configs)) == 8
 
     configs = extend_configs(robot3_package_path, configs)
     assert get_missing_configs(configs) == [
         ConfigSections.MOVEIT_CPP,
+        ConfigSections.PILZ_CARTESIAN_LIMITS,
     ]
     moveit_configs = configs[ConfigSections.MOVEIT_CONFIGS]
     assert moveit_configs[ConfigSections.ROBOT_DESCRIPTION] == "config/kermit3.urdf"
@@ -270,3 +307,41 @@ def test_extend_non_existing_package():
         MoveItConfigsBuilder(package="non_existing_package")
     with pytest.raises(PackageNotFoundError):
         MoveItConfigsBuilder(package=Path(dir_path, "existing_moveit_config"))
+
+
+def test_load_all():
+    """Test automatically loading all configs from a package."""
+    builder = MoveItConfigsBuilder(
+        package=Path(dir_path, "partial_panda_moveit_config"),
+    ).load_all()
+    assert (moveit_configs := builder.to_moveit_configs())
+    assert moveit_configs.robot_description
+    assert moveit_configs.robot_description_kinematics
+    assert moveit_configs.joint_limits
+    assert moveit_configs.planning_pipelines
+    assert (
+        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 2
+    )
+    assert moveit_configs.trajectory_execution
+
+    assert not moveit_configs.robot_description_semantic
+    assert not moveit_configs.sensors_3d
+    assert not moveit_configs.pilz_cartesian_limits
+    assert not moveit_configs.moveit_cpp
+
+    builder = MoveItConfigsBuilder(
+        package=Path(dir_path, "panda_moveit_config"),
+    ).load_all()
+    assert (moveit_configs := builder.to_moveit_configs())
+    assert moveit_configs.robot_description
+    assert moveit_configs.robot_description_semantic
+    assert moveit_configs.robot_description_kinematics
+    assert moveit_configs.joint_limits
+    assert moveit_configs.planning_pipelines
+    assert (
+        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 4
+    )
+    assert moveit_configs.trajectory_execution
+    assert moveit_configs.sensors_3d
+
+    assert not moveit_configs.pilz_cartesian_limits

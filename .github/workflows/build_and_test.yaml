@@ -13,13 +13,10 @@ on:
 
 jobs:
   industrial_ci:
-    strategy:
-      fail-fast: false
-
+    name: Build and test
     env:
       ROS_DISTRO: humble
       ROS_REPO: main
-      CI_NAME: build-and-test
       DOCKER_IMAGE: moveit/moveit2:humble-source
       UNDERLAY: /root/ws_moveit/install
       # UPSTREAM_WORKSPACE: moveitpy_simple.repos

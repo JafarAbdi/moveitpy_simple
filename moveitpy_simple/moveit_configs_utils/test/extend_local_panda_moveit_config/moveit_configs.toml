@@ -1,0 +1,4 @@
+[moveit_configs]
+extend = "../panda_moveit_config"
+robot_description_kinematics = "kinematics.yaml"
+robot_description_semantic = "package://moveit_resources_panda_moveit_config/config/panda_arm.srdf.xacro"
