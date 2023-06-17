@@ -9,8 +9,6 @@ from geometry_msgs.msg import PoseStamped
 from moveit.core.kinematic_constraints import construct_joint_constraint
 from moveit.core.planning_interface import MotionPlanResponse
 from moveit.core.planning_scene import PlanningScene
-
-# if TYPE_CHECKING:
 from moveit.core.robot_model import JointModelGroup, RobotModel
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
