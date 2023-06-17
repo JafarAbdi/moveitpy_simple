@@ -185,17 +185,18 @@ class Gripper:
         normalize: bool = False,
     ) -> None:
         """Set the goal to a joint positions."""
-        goal_joint_positions = {}
-        for joint_name, joint_position in zip(
-            self.joint_names,
-            joint_positions,
-            strict=True,
-        ):
-            goal_joint_positions[joint_name] = (
+        goal_joint_positions = {
+            joint_name: (
                 self._joint_positions_denormalizers[joint_name](joint_position)
                 if normalize
                 else joint_position
             )
+            for joint_name, joint_position in zip(
+                self.joint_names,
+                joint_positions,
+                strict=True,
+            )
+        }
         robot_state = deepcopy(self._planning_component.get_start_state())
         robot_state.joint_positions = goal_joint_positions
         joint_constraint = construct_joint_constraint(
