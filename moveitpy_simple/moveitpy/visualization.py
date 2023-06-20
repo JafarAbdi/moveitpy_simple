@@ -127,13 +127,13 @@ class Visualizer:
         """Get the images of the robot trajectory, could be used for wandb."""
         images = []
         if isinstance(robot_trajectory, RobotTrajectory):
-            for rs, _ in robot_trajectory:
-                images.append(
-                    np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1),
-                )
+            images.extend(
+                np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1)
+                for rs, _ in robot_trajectory
+            )
         elif isinstance(robot_trajectory, list):
-            for rs in robot_trajectory:
-                images.append(
-                    np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1),
-                )
+            images.extend(
+                np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1)
+                for rs in robot_trajectory
+            )
         return np.stack(images, axis=0)
