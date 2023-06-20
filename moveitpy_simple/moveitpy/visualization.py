@@ -1,5 +1,6 @@
 """Visualization of robot states and trajectories using Panda3D."""
 
+import time
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +30,7 @@ def normalized_robot_description(file: Path | str) -> URDF:
                     "package://",
                 )[1].split("/", 1)
                 collision.geometry.filename = (
-                    f"file:/{get_package_share_path(package_name)}/{relative_path}"
+                    f"/{get_package_share_path(package_name)}/{relative_path}"
                 )
         for visual in link.visuals:
             if isinstance(
@@ -40,7 +41,7 @@ def normalized_robot_description(file: Path | str) -> URDF:
                     "package://",
                 )[1].split("/", 1)
                 visual.geometry.filename = (
-                    f"file:/{get_package_share_path(package_name)}/{relative_path}"
+                    f"/{get_package_share_path(package_name)}/{relative_path}"
                 )
     return robot
 
@@ -54,8 +55,9 @@ class Visualizer:
         config.set_window_size(320, 240)
         config.enable_antialiasing(enable=True, multisamples=4)
         config.enable_shadow(enable=False)
-        config.show_axes(enable=False)
+        config.show_axes(show=False)
 
+        # TODO: Add a way to set onscreen
         self._viewer = Viewer(window_type="offscreen", config=config)
 
         self._viewer.append_group(ROOT_NAME)
@@ -105,12 +107,13 @@ class Visualizer:
 
     def visualize_robot_trajectory(self, robot_trajectory: RobotTrajectory) -> None:
         """Visualize the robot trajectory in the viewer."""
-        for rs, _ in robot_trajectory:
+        for rs, duration_from_start in robot_trajectory:
             for link in self._robot.links:
                 self._viewer.move_nodes(
                     ROOT_NAME,
                     {link.name: rs.get_global_link_transform(link.name)},
                 )
+            time.sleep(duration_from_start)
 
     def get_robot_state_image(self, robot_state: RobotState) -> np.ndarray:
         """Get the image of the robot state, could be used for wandb."""
@@ -119,10 +122,18 @@ class Visualizer:
 
     def get_robot_trajectory_images(
         self,
-        robot_trajectory: RobotTrajectory,
+        robot_trajectory: RobotTrajectory | list[RobotState],
     ) -> np.ndarray:
         """Get the images of the robot trajectory, could be used for wandb."""
         images = []
-        for rs, _ in robot_trajectory:
-            images.append(np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1))
+        if isinstance(robot_trajectory, RobotTrajectory):
+            for rs, _ in robot_trajectory:
+                images.append(
+                    np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1),
+                )
+        elif isinstance(robot_trajectory, list):
+            for rs in robot_trajectory:
+                images.append(
+                    np.asarray(self.get_robot_state_image(rs)).transpose(2, 0, 1),
+                )
         return np.stack(images, axis=0)

@@ -165,8 +165,8 @@ def test_auto_detect_groups():
         .load_all()
         .to_moveit_configs(),
     )
-    assert moveitpy.arm._joint_model_group.name == "panda_arm"
-    assert moveitpy.gripper._joint_model_group.name == "hand"
+    assert moveitpy.arm.joint_model_group.name == "panda_arm"
+    assert moveitpy.gripper.joint_model_group.name == "hand"
 
 
 def test_normalized_gripper_values():

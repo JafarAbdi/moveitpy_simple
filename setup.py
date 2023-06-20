@@ -12,6 +12,7 @@ setup(
             [f"resource/{package_name}"],
         ),
         (f"share/{package_name}", ["package.xml"]),
+        (f"lib/{package_name}", ["example/visualizer.py"]),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
