@@ -109,7 +109,7 @@ class Gripper:
                     msg,
                 )
 
-        self._joint_model_group = joint_model_group
+        self.joint_model_group = joint_model_group
         self._planning_component = planning_component
         self._planning_scene_monitor = planning_scene_monitor
         self._value_range = value_range or ValueRange.UNIT
@@ -146,7 +146,7 @@ class Gripper:
     @property
     def joint_names(self) -> list[str]:
         """Active joint names for the hand joint model group."""
-        return self._joint_model_group.active_joint_model_names
+        return self.joint_model_group.active_joint_model_names
 
     def get_joint_positions(self, *, normalize: bool = False) -> np.ndarray:
         """Get current joint positions for the gripper joint model group."""
@@ -201,7 +201,7 @@ class Gripper:
         robot_state.joint_positions = goal_joint_positions
         joint_constraint = construct_joint_constraint(
             robot_state=robot_state,
-            joint_model_group=self._joint_model_group,
+            joint_model_group=self.joint_model_group,
             # TODO: Why MoveItPy uses 0.01 as tolerance? MoveIt set it to std::numeric_limits<double>::epsilon() by default
             tolerance=np.finfo(np.float32).eps,
         )
@@ -230,7 +230,7 @@ class Arm:
             planning_component: The planning component of the arm.
             planning_scene_monitor: The planning scene monitor.
         """
-        self._joint_model_group = joint_model_group
+        self.joint_model_group = joint_model_group
         self._planning_component = planning_component
         self._planning_scene_monitor = planning_scene_monitor
 
@@ -246,7 +246,7 @@ class Arm:
                     joint_limit[0].min_position,
                     joint_limit[0].max_position,
                 ]
-                for joint_limit in self._joint_model_group.active_joint_model_bounds
+                for joint_limit in self.joint_model_group.active_joint_model_bounds
             ],
             ValueRange.UNIT,
         )
@@ -254,7 +254,7 @@ class Arm:
     @property
     def joint_names(self) -> list[str]:
         """Active joint names for the arm joint model group."""
-        return self._joint_model_group.active_joint_model_names
+        return self.joint_model_group.active_joint_model_names
 
     def get_joint_positions(self, *, normalize: bool = False) -> np.ndarray:
         """Get current joint positions for the arm joint model group."""
@@ -333,7 +333,7 @@ class Arm:
         robot_state.joint_positions = goal_joint_positions
         joint_constraint = construct_joint_constraint(
             robot_state=robot_state,
-            joint_model_group=self._joint_model_group,
+            joint_model_group=self.joint_model_group,
         )
         self._planning_component.set_goal_state(
             motion_plan_constraints=[joint_constraint],
@@ -380,7 +380,7 @@ class MoveItPySimple:
     ) -> None:
         """Initialize the MoveItPySimple class."""
         self._moveit_py = MoveItPy(node_name, config_dict=moveit_configs.to_dict())
-        self._robot_model: RobotModel = self._moveit_py.get_robot_model()
+        self.robot_model: RobotModel = self._moveit_py.get_robot_model()
 
         if arm_group_name is None and gripper_group_name is None:
             from srdfdom.srdf import SRDF
@@ -396,26 +396,26 @@ class MoveItPySimple:
                 )
             gripper_group_name = end_effectors[0].name
             arm_group_name = end_effectors[0].parent_group
-        if not self._robot_model.has_joint_model_group(arm_group_name):
+        if not self.robot_model.has_joint_model_group(arm_group_name):
             msg = f"Robot model does not have group {arm_group_name} defined"
             raise ValueError(
                 msg,
             )
-        if not self._robot_model.has_joint_model_group(gripper_group_name):
+        if not self.robot_model.has_joint_model_group(gripper_group_name):
             msg = f"Robot model does not have group {gripper_group_name} defined"
             raise ValueError(
                 msg,
             )
 
         self.gripper = Gripper(
-            self._robot_model.get_joint_model_group(gripper_group_name),
+            self.robot_model.get_joint_model_group(gripper_group_name),
             self._moveit_py.get_planning_component(gripper_group_name),
             self._moveit_py.get_planning_scene_monitor(),
             value_range=gripper_value_range,
         )
 
         self.arm = Arm(
-            self._robot_model.get_joint_model_group(arm_group_name),
+            self.robot_model.get_joint_model_group(arm_group_name),
             self._moveit_py.get_planning_component(arm_group_name),
             self._moveit_py.get_planning_scene_monitor(),
         )
