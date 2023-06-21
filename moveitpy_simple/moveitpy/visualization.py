@@ -49,7 +49,7 @@ def normalized_robot_description(file: Path | str) -> URDF:
 class Visualizer:
     """Visualize robot states and trajectories using Panda3D."""
 
-    def __init__(self, robot_description: str) -> None:
+    def __init__(self, robot_description: str, window_type: str) -> None:
         """Initialize the visualizer."""
         config = ViewerConfig()
         config.set_window_size(320, 240)
@@ -58,7 +58,7 @@ class Visualizer:
         config.show_axes(show=False)
 
         # TODO: Add a way to set onscreen
-        self._viewer = Viewer(window_type="offscreen", config=config)
+        self._viewer = Viewer(window_type=window_type, config=config)
 
         self._viewer.append_group(ROOT_NAME)
         self._robot = normalized_robot_description(robot_description)
@@ -100,20 +100,32 @@ class Visualizer:
     def visualize_robot_state(self, robot_state: RobotState) -> None:
         """Visualize the robot state in the viewer."""
         for link in self._robot.links:
+            link_model = robot_state.robot_model.get_link_model(link.name)
             self._viewer.move_nodes(
                 ROOT_NAME,
-                {link.name: robot_state.get_global_link_transform(link.name)},
+                {
+                    link.name: robot_state.get_global_link_transform(link.name)
+                    @ (
+                        link_model.get_visual_mesh_origin()
+                        if link_model.get_visual_mesh_filename()
+                        else np.eye(4)
+                    ),
+                },
             )
 
-    def visualize_robot_trajectory(self, robot_trajectory: RobotTrajectory) -> None:
+    def visualize_robot_trajectory(
+        self,
+        robot_trajectory: RobotTrajectory | list[RobotState],
+    ) -> None:
         """Visualize the robot trajectory in the viewer."""
-        for rs, duration_from_start in robot_trajectory:
-            for link in self._robot.links:
-                self._viewer.move_nodes(
-                    ROOT_NAME,
-                    {link.name: rs.get_global_link_transform(link.name)},
-                )
-            time.sleep(duration_from_start)
+        if isinstance(robot_trajectory, RobotTrajectory):
+            for rs, duration_from_start in robot_trajectory:
+                self.visualize_robot_state(rs)
+                time.sleep(duration_from_start)
+        elif isinstance(robot_trajectory, list):
+            for rs in robot_trajectory:
+                self.visualize_robot_state(rs)
+                time.sleep(0.1)
 
     def get_robot_state_image(self, robot_state: RobotState) -> np.ndarray:
         """Get the image of the robot state, could be used for wandb."""
