@@ -100,9 +100,17 @@ class Visualizer:
     def visualize_robot_state(self, robot_state: RobotState) -> None:
         """Visualize the robot state in the viewer."""
         for link in self._robot.links:
+            link_model = robot_state.robot_model.get_link_model(link.name)
             self._viewer.move_nodes(
                 ROOT_NAME,
-                {link.name: robot_state.get_global_link_transform(link.name)},
+                {
+                    link.name: robot_state.get_global_link_transform(link.name)
+                    @ (
+                        link_model.get_visual_mesh_origin()
+                        if link_model.get_visual_mesh_filename()
+                        else np.eye(4)
+                    ),
+                },
             )
 
     def visualize_robot_trajectory(self, robot_trajectory: RobotTrajectory) -> None:
