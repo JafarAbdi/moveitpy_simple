@@ -113,15 +113,19 @@ class Visualizer:
                 },
             )
 
-    def visualize_robot_trajectory(self, robot_trajectory: RobotTrajectory) -> None:
+    def visualize_robot_trajectory(
+        self,
+        robot_trajectory: RobotTrajectory | list[RobotState],
+    ) -> None:
         """Visualize the robot trajectory in the viewer."""
-        for rs, duration_from_start in robot_trajectory:
-            for link in self._robot.links:
-                self._viewer.move_nodes(
-                    ROOT_NAME,
-                    {link.name: rs.get_global_link_transform(link.name)},
-                )
-            time.sleep(duration_from_start)
+        if isinstance(robot_trajectory, RobotTrajectory):
+            for rs, duration_from_start in robot_trajectory:
+                self.visualize_robot_state(rs)
+                time.sleep(duration_from_start)
+        elif isinstance(robot_trajectory, list):
+            for rs in robot_trajectory:
+                self.visualize_robot_state(rs)
+                time.sleep(0.1)
 
     def get_robot_state_image(self, robot_state: RobotState) -> np.ndarray:
         """Get the image of the robot state, could be used for wandb."""
