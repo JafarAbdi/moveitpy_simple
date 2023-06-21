@@ -38,7 +38,9 @@ robot_state.set_to_default_values(moveitpy.arm.joint_model_group, "ready")
 robot_state.set_to_default_values(moveitpy.gripper.joint_model_group, "close")
 robot_state.update()
 
-visualizer = Visualizer(moveit_configs.robot_description["robot_description"])
+visualizer = Visualizer(
+    moveit_configs.robot_description["robot_description"], "onscreen"
+)
 visualizer.visualize_robot_state(robot_state)
 
 moveitpy.arm.set_start_state(robot_state)

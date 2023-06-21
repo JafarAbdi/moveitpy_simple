@@ -49,7 +49,7 @@ def normalized_robot_description(file: Path | str) -> URDF:
 class Visualizer:
     """Visualize robot states and trajectories using Panda3D."""
 
-    def __init__(self, robot_description: str) -> None:
+    def __init__(self, robot_description: str, window_type: str) -> None:
         """Initialize the visualizer."""
         config = ViewerConfig()
         config.set_window_size(320, 240)
@@ -58,7 +58,7 @@ class Visualizer:
         config.show_axes(show=False)
 
         # TODO: Add a way to set onscreen
-        self._viewer = Viewer(window_type="offscreen", config=config)
+        self._viewer = Viewer(window_type=window_type, config=config)
 
         self._viewer.append_group(ROOT_NAME)
         self._robot = normalized_robot_description(robot_description)
