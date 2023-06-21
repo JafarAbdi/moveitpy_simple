@@ -5,11 +5,11 @@
 from copy import deepcopy
 from pathlib import Path
 
+import wandb
 from ament_index_python.packages import get_package_share_path
 from moveit.core.robot_model import RobotModel
 from moveit.core.robot_state import RobotState
 
-import wandb
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
 from moveitpy_simple.moveit_configs_utils.file_loaders import load_xacro
 from moveitpy_simple.moveitpy import MoveItPySimple
@@ -45,7 +45,8 @@ robot_state.set_to_default_values(moveitpy.gripper.joint_model_group, "open")
 robot_state.update()
 
 visualizer = Visualizer(
-    moveit_configs.robot_description["robot_description"], "onscreen",
+    moveit_configs.robot_description["robot_description"],
+    "onscreen",
 )
 visualizer.visualize_robot_state(robot_state)
 
