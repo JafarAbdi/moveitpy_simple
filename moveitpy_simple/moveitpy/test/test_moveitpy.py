@@ -4,7 +4,9 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
+import pytest
 from geometry_msgs.msg import Point, Pose, PoseStamped
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
@@ -267,4 +269,77 @@ def test_normalized_gripper_values():
         ),
         goal_joint_positions,
         atol=1e-2,
+    )
+
+
+def test_joint_positions_getters():
+    """Test the joint positions getters."""
+    moveitpy = MoveItPySimple(
+        "moveitpy_simple",
+        MoveItConfigsBuilder(package=path_dir / "panda_moveit_config")
+        .load_all()
+        .to_moveit_configs(),
+    )
+
+    moveitpy.robot_state()
+    joint_state = JointState()
+    joint_state.name = ["panda_finger_joint1"]
+    joint_state.position = [0.035]
+    assert np.allclose(
+        moveitpy.gripper.joint_positions_from_joint_state_msg(joint_state),
+        [0.035],
+    )
+    with pytest.raises(
+        ValueError,
+        match="Joint name 'panda_joint1' not in joint state msg.",
+    ):
+        moveitpy.arm.joint_positions_from_joint_state_msg(joint_state)
+
+    joint_state = JointState()
+    joint_state.name = ["panda_joint1"]
+    joint_state.position = [1.0]
+    with pytest.raises(
+        ValueError,
+        match="Joint name 'panda_joint2' not in joint state msg.",
+    ):
+        moveitpy.arm.joint_positions_from_joint_state_msg(joint_state)
+
+    joint_state = JointState()
+    joint_state.name = [
+        "panda_joint1",
+        "panda_joint2",
+        "panda_joint3",
+        "panda_joint4",
+        "panda_joint5",
+        "panda_joint6",
+        "panda_joint7",
+        "panda_finger_joint1",
+        "panda_finger_joint2",
+    ]
+    joint_state.position = [
+        -1.5,
+        -1.7628,
+        2.8,
+        0.0,
+        0.0,
+        3.7525,
+        0.5,
+        0.035,
+        0.035,
+    ]
+    assert np.allclose(
+        moveitpy.arm.joint_positions_from_joint_state_msg(joint_state),
+        [
+            -1.5,
+            -1.7628,
+            2.8,
+            0.0,
+            0.0,
+            3.7525,
+            0.5,
+        ],
+    )
+    assert np.allclose(
+        moveitpy.gripper.joint_positions_from_joint_state_msg(joint_state),
+        [0.035],
     )
