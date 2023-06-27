@@ -15,6 +15,7 @@ from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from moveit.planning import MoveItPy, PlanningComponent, PlanningSceneMonitor
 from moveit_msgs.msg import Constraints
+from sensor_msgs.msg import JointState
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigs
 
@@ -83,6 +84,22 @@ def joint_positions_from_robot_state(
             for joint_name in joint_names
         ]
     return [robot_state.joint_positions[joint_name] for joint_name in joint_names]
+
+
+def joint_positions_from_joint_state_msg(
+    joint_state_msg: JointState, joint_names: list[str], normalizers: dict | None = None
+) -> list[float]:
+    """Get joint positions from joint state msg."""
+    positions = [
+        joint_state_msg.position[joint_state_msg.name.index(joint_name)]
+        for joint_name in joint_names
+    ]
+    if normalizers is not None:
+        return [
+            normalizers[joint_name](position)
+            for joint_name, position in zip(joint_names, positions)
+        ]
+    return positions
 
 
 class Gripper:
@@ -157,7 +174,6 @@ class Gripper:
             self._joint_positions_normalizers if normalize else None,
         )
 
-    # TODO: Rename to normalize
     def joint_positions_from_robot_state(
         self,
         robot_state: RobotState,
@@ -167,6 +183,19 @@ class Gripper:
         """Get joint positions from a robot state."""
         return joint_positions_from_robot_state(
             robot_state,
+            self.joint_names,
+            self._joint_positions_normalizers if normalize else None,
+        )
+
+    def joint_positions_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+        *,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        """Get joint positions from a joint state msg."""
+        return joint_positions_from_joint_state_msg(
+            joint_state_msg,
             self.joint_names,
             self._joint_positions_normalizers if normalize else None,
         )
@@ -274,6 +303,19 @@ class Arm:
         """Get joint positions from a robot state."""
         return joint_positions_from_robot_state(
             robot_state,
+            self.joint_names,
+            self._joint_positions_normalizers if normalize else None,
+        )
+
+    def joint_positions_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+        *,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        """Get joint positions from a joint state message."""
+        return joint_positions_from_joint_state_msg(
+            joint_state_msg,
             self.joint_names,
             self._joint_positions_normalizers if normalize else None,
         )
