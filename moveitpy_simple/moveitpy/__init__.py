@@ -1,5 +1,6 @@
 """A simple wrapper around MoveItPy."""
 
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from functools import partial
@@ -87,68 +88,42 @@ def joint_positions_from_robot_state(
 
 
 def joint_positions_from_joint_state_msg(
-    joint_state_msg: JointState, joint_names: list[str], normalizers: dict | None = None
+    joint_state_msg: JointState,
+    joint_names: list[str],
+    normalizers: dict | None = None,
 ) -> list[float]:
     """Get joint positions from joint state msg."""
-    positions = [
-        joint_state_msg.position[joint_state_msg.name.index(joint_name)]
-        for joint_name in joint_names
-    ]
+    positions = []
+    for joint_name in joint_names:
+        try:
+            index = joint_state_msg.name.index(joint_name)
+        except ValueError:
+            msg = f"Joint name '{joint_name}' not in joint state msg."
+            raise ValueError(msg) from None
+        positions.append(joint_state_msg.position[index])
+
     if normalizers is not None:
         return [
             normalizers[joint_name](position)
-            for joint_name, position in zip(joint_names, positions)
+            for joint_name, position in zip(joint_names, positions, strict=True)
         ]
     return positions
 
 
-class Gripper:
-    """A class that wraps around a gripper joint model group & planning component."""
+class RobotComponent(ABC):
+    """A class for a robot component."""
 
     def __init__(
         self,
         joint_model_group: JointModelGroup,
         planning_component: PlanningComponent,
         planning_scene_monitor: PlanningSceneMonitor,
-        value_range: ValueRange | None = None,
+        value_range: ValueRange,
     ) -> None:
-        """Initialize the gripper.
-
-        Args:
-            joint_model_group: The joint model group of the gripper.
-            planning_component: The planning component of the gripper.
-            planning_scene_monitor: The planning scene monitor.
-            value_range: The value range of the gripper joint positions, defaults to ValueRange.UNIT.
-        """
-        for gripper_state in GripperState:
-            if gripper_state.value not in planning_component.named_target_states:
-                msg = f"Gripper joint model group does not have named target {gripper_state.value}"
-                raise ValueError(
-                    msg,
-                )
-
+        """Initialize a robot component."""
         self.joint_model_group = joint_model_group
         self._planning_component = planning_component
         self._planning_scene_monitor = planning_scene_monitor
-        self._value_range = value_range or ValueRange.UNIT
-
-        gripper_open_joint_positions = (
-            self._planning_component.get_named_target_state_values(
-                GripperState.OPEN,
-            )
-        )
-        gripper_close_joint_positions = (
-            self._planning_component.get_named_target_state_values(
-                GripperState.CLOSE,
-            )
-        )
-        gripper_values_range = [
-            [
-                gripper_close_joint_positions[joint_name],
-                gripper_open_joint_positions[joint_name],
-            ]
-            for joint_name in self.joint_names
-        ]
 
         (
             # Convert from [min, max] to [-1, 1] or Convert [0, 1] to [min, max] and vice versa depending on the value range
@@ -157,9 +132,14 @@ class Gripper:
             self._joint_positions_denormalizers,
         ) = create_joint_positions_converters(
             self.joint_names,
-            gripper_values_range,
-            self._value_range,
+            self.joint_limits,
+            value_range,
         )
+
+    @property
+    @abstractmethod
+    def joint_limits(self) -> list[list[float]]:
+        """Joint limits for the joint model group."""
 
     @property
     def joint_names(self) -> list[str]:
@@ -202,11 +182,78 @@ class Gripper:
 
     def set_start_state(self, robot_state: RobotState | str) -> None:
         """Set the start state."""
-        self._planning_component.set_start_state(configuration_name=robot_state)
+        if isinstance(robot_state, str):
+            self._planning_component.set_start_state(configuration_name=robot_state)
+        elif isinstance(robot_state, RobotState):
+            self._planning_component.set_start_state(robot_state=robot_state)
+        else:
+            msg = (
+                f"robot_state must be a string or a RobotState, got {type(robot_state)}"
+            )
+            raise TypeError(
+                msg,
+            )
 
     def get_start_state(self) -> RobotState:
         """Get the start state."""
         return self._planning_component.get_start_state()
+
+    def plan(self) -> MotionPlanResponse:
+        """Plan a trajectory to the goal."""
+        return self._planning_component.plan()
+
+
+class Gripper(RobotComponent):
+    """A class that wraps around a gripper joint model group & planning component."""
+
+    def __init__(
+        self,
+        joint_model_group: JointModelGroup,
+        planning_component: PlanningComponent,
+        planning_scene_monitor: PlanningSceneMonitor,
+        value_range: ValueRange | None = None,
+    ) -> None:
+        """Initialize the gripper.
+
+        Args:
+            joint_model_group: The joint model group of the gripper.
+            planning_component: The planning component of the gripper.
+            planning_scene_monitor: The planning scene monitor.
+            value_range: The value range of the gripper joint positions, defaults to ValueRange.UNIT.
+        """
+        super().__init__(
+            joint_model_group,
+            planning_component,
+            planning_scene_monitor,
+            value_range or ValueRange.UNIT,
+        )
+
+    @property
+    def joint_limits(self) -> list[list[float]]:
+        """Joint limits for the joint model group."""
+        for gripper_state in GripperState:
+            if gripper_state.value not in self._planning_component.named_target_states:
+                msg = f"Gripper joint model group does not have named target {gripper_state.value}"
+                raise ValueError(
+                    msg,
+                )
+        gripper_open_joint_positions = (
+            self._planning_component.get_named_target_state_values(
+                GripperState.OPEN,
+            )
+        )
+        gripper_close_joint_positions = (
+            self._planning_component.get_named_target_state_values(
+                GripperState.CLOSE,
+            )
+        )
+        return [
+            [
+                gripper_close_joint_positions[joint_name],
+                gripper_open_joint_positions[joint_name],
+            ]
+            for joint_name in self.joint_names
+        ]
 
     def set_goal(
         self,
@@ -239,12 +286,8 @@ class Gripper:
             motion_plan_constraints=[joint_constraint],
         )
 
-    def plan(self) -> MotionPlanResponse:
-        """Plan a trajectory to the goal."""
-        return self._planning_component.plan()
 
-
-class Arm:
+class Arm(RobotComponent):
     """A class that wraps around an arm joint model group & planning component."""
 
     def __init__(
@@ -260,65 +303,23 @@ class Arm:
             planning_component: The planning component of the arm.
             planning_scene_monitor: The planning scene monitor.
         """
-        self.joint_model_group = joint_model_group
-        self._planning_component = planning_component
-        self._planning_scene_monitor = planning_scene_monitor
-
-        (
-            # Convert from [min, max] to [-1, 1]
-            self._joint_positions_normalizers,
-            # Convert from [-1, 1] to [min, max]
-            self._joint_positions_denormalizers,
-        ) = create_joint_positions_converters(
-            self.joint_names,
-            [
-                [
-                    joint_limit[0].min_position,
-                    joint_limit[0].max_position,
-                ]
-                for joint_limit in self.joint_model_group.active_joint_model_bounds
-            ],
-            ValueRange.UNIT,
+        super().__init__(
+            joint_model_group=joint_model_group,
+            planning_component=planning_component,
+            planning_scene_monitor=planning_scene_monitor,
+            value_range=ValueRange.UNIT,
         )
 
     @property
-    def joint_names(self) -> list[str]:
-        """Active joint names for the arm joint model group."""
-        return self.joint_model_group.active_joint_model_names
-
-    def get_joint_positions(self, *, normalize: bool = False) -> np.ndarray:
-        """Get current joint positions for the arm joint model group."""
-        return joint_positions_from_robot_state(
-            get_robot_state(self._planning_scene_monitor),
-            self.joint_names,
-            self._joint_positions_normalizers if normalize else None,
-        )
-
-    def joint_positions_from_robot_state(
-        self,
-        robot_state: RobotState,
-        *,
-        normalize: bool = False,
-    ) -> np.ndarray:
-        """Get joint positions from a robot state."""
-        return joint_positions_from_robot_state(
-            robot_state,
-            self.joint_names,
-            self._joint_positions_normalizers if normalize else None,
-        )
-
-    def joint_positions_from_joint_state_msg(
-        self,
-        joint_state_msg: JointState,
-        *,
-        normalize: bool = False,
-    ) -> np.ndarray:
-        """Get joint positions from a joint state message."""
-        return joint_positions_from_joint_state_msg(
-            joint_state_msg,
-            self.joint_names,
-            self._joint_positions_normalizers if normalize else None,
-        )
+    def joint_limits(self) -> list[list[float]]:
+        """Joint limits for the joint model group."""
+        return [
+            [
+                joint_limit[0].min_position,
+                joint_limit[0].max_position,
+            ]
+            for joint_limit in self.joint_model_group.active_joint_model_bounds
+        ]
 
     # TODO: We should have a way to specify (Already possible with multi_plan_parameters/single_plan_parameters)
     # - Planning time
@@ -385,28 +386,6 @@ class Arm:
     def set_goal_from_constraints(self, constraints: list[Constraints]) -> None:
         """Set the goal to a set of constraints."""
         self._planning_component.set_goal_state(motion_plan_constraints=constraints)
-
-    def set_start_state(self, robot_state: RobotState | str) -> None:
-        """Set the start state."""
-        if isinstance(robot_state, str):
-            self._planning_component.set_start_state(configuration_name=robot_state)
-        elif isinstance(robot_state, RobotState):
-            self._planning_component.set_start_state(robot_state=robot_state)
-        else:
-            msg = (
-                f"robot_state must be a string or a RobotState, got {type(robot_state)}"
-            )
-            raise TypeError(
-                msg,
-            )
-
-    def get_start_state(self) -> RobotState:
-        """Get the start state."""
-        return self._planning_component.get_start_state()
-
-    def plan(self) -> MotionPlanResponse:
-        """Plan a trajectory to the goal."""
-        return self._planning_component.plan()
 
 
 class MoveItPySimple:
