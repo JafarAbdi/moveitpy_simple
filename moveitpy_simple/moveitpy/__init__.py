@@ -3,6 +3,7 @@
 from copy import deepcopy
 from enum import Enum
 from functools import partial
+from typing import ClassVar
 
 import numpy as np
 from geometry_msgs.msg import PoseStamped
@@ -21,8 +22,8 @@ from moveitpy_simple.moveit_configs_utils import MoveItConfigs
 class ValueRange(Enum):
     """Value ranges."""
 
-    UNIT = [-1.0, 1.0]
-    NORMALIZED = [0.0, 1.0]
+    UNIT: ClassVar[list[float]] = [-1.0, 1.0]
+    NORMALIZED: ClassVar[list[float]] = [0.0, 1.0]
 
 
 class GripperState(str, Enum):
