@@ -5,11 +5,11 @@
 from copy import deepcopy
 from pathlib import Path
 
+import wandb
 from ament_index_python.packages import get_package_share_path
 from moveit.core.robot_model import RobotModel
 from moveit.core.robot_state import RobotState
 
-import wandb
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
 from moveitpy_simple.moveit_configs_utils.file_loaders import load_xacro
 from moveitpy_simple.moveitpy import MoveItPySimple
