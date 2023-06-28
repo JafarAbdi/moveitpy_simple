@@ -13,6 +13,16 @@ from urdf_parser_py.urdf import URDF, Box, Cylinder, Mesh, Sphere
 ROOT_NAME = "root"
 
 
+def normalize_filename(filename: str) -> str:
+    """Normalize the filename to use absolute paths."""
+    if filename.startswith("package://"):
+        package_name, relative_path = filename.split("package://")[1].split("/", 1)
+        filename = f"/{get_package_share_path(package_name)}/{relative_path}"
+    elif filename.startswith("file://"):
+        filename = filename.split("file://")[1]
+    return filename
+
+
 def normalized_robot_description(file: Path | str) -> URDF:
     """Normalize the robot description file to use absolute paths for the collision and visual tags."""
     if isinstance(file, str):
@@ -25,24 +35,17 @@ def normalized_robot_description(file: Path | str) -> URDF:
             if isinstance(
                 collision.geometry,
                 Mesh,
-            ) and collision.geometry.filename.startswith("package://"):
-                package_name, relative_path = collision.geometry.filename.split(
-                    "package://",
-                )[1].split("/", 1)
-                collision.geometry.filename = (
-                    f"/{get_package_share_path(package_name)}/{relative_path}"
+            ):
+                collision.geometry.filename = normalize_filename(
+                    collision.geometry.filename,
                 )
+
         for visual in link.visuals:
             if isinstance(
                 visual.geometry,
                 Mesh,
-            ) and visual.geometry.filename.startswith("package://"):
-                package_name, relative_path = visual.geometry.filename.split(
-                    "package://",
-                )[1].split("/", 1)
-                visual.geometry.filename = (
-                    f"/{get_package_share_path(package_name)}/{relative_path}"
-                )
+            ):
+                visual.geometry.filename = normalize_filename(visual.geometry.filename)
     return robot
 
 
