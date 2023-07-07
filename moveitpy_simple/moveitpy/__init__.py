@@ -416,7 +416,7 @@ class MoveItPySimple:
                 raise ValueError(
                     msg,
                 )
-            gripper_group_name = end_effectors[0].name
+            gripper_group_name = end_effectors[0].group
             arm_group_name = end_effectors[0].parent_group
         if not self.robot_model.has_joint_model_group(arm_group_name):
             msg = f"Robot model does not have group {arm_group_name} defined"
