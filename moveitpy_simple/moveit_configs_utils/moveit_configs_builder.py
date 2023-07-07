@@ -98,6 +98,7 @@ Example:
 """
 
 import contextlib
+import logging
 from dataclasses import InitVar, dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -114,6 +115,11 @@ from moveitpy_simple.moveit_configs_utils.file_loaders import (
     load_yaml,
     raise_if_file_not_found,
 )
+
+LOGGER = logging.getLogger(__name__)
+COLOR_YELLOW = "\x1b[33;20m"
+COLOR_RESET = "\x1b[0m"
+logging.basicConfig(level=logging.INFO)
 
 
 def normalize_path_value(value: str) -> Path:
@@ -722,6 +728,10 @@ class MoveItConfigsBuilder:
         Returns:
             Instance of MoveItConfigsBuilder with all configs loaded.
         """
+        if not self._default_configs:
+            LOGGER.warning(
+                f"{COLOR_YELLOW}Request to load all configs, but no default configs found. Make sure to create moveit_configs.toml file.{COLOR_RESET}",
+            )
         existing_configs = [
             section
             for section in ConfigSections
