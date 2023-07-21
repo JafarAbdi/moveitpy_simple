@@ -8,8 +8,8 @@ from ament_index_python.packages import get_package_share_path
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from panda3d_viewer import Viewer, ViewerConfig
-from urdf_parser_py.urdf import URDF, Box, Cylinder, Mesh, Sphere
 from transforms3d.euler import euler2mat
+from urdf_parser_py.urdf import URDF, Box, Cylinder, Mesh, Sphere
 
 ROOT_NAME = "root"
 
@@ -127,7 +127,7 @@ class Visualizer:
     def visualize_robot_state(self, robot_state: RobotState) -> None:
         """Visualize the robot state in the viewer."""
         for link in self._robot.links:
-            link_model = robot_state.robot_model.get_link_model(link.name)
+            robot_state.robot_model.get_link_model(link.name)
             self._viewer.move_nodes(
                 ROOT_NAME,
                 {
