@@ -9,7 +9,7 @@ from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from panda3d_viewer import Viewer, ViewerConfig
 from transforms3d.euler import euler2mat
-from urdf_parser_py.urdf import URDF, Box, Cylinder, Mesh, Sphere
+from urdf_parser_py.urdf import URDF, Box, Cylinder, Link, Mesh, Sphere
 
 ROOT_NAME = "root"
 
@@ -101,7 +101,8 @@ class Visualizer:
 
         self._viewer.reset_camera(pos=(1.5, 1.5, 2), look_at=(0, 0, 0.5))
 
-    def _get_visual_origin(self, link) -> np.ndarray:
+    def _get_visual_origin(self, link: Link) -> np.ndarray:
+        """Get the origin of the visual in the link frame."""
         if len(link.visuals) == 0:
             return np.eye(4)
         if len(link.visuals) != 1:
