@@ -8,7 +8,8 @@ from ament_index_python.packages import get_package_share_path
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from panda3d_viewer import Viewer, ViewerConfig
-from urdf_parser_py.urdf import URDF, Box, Cylinder, Mesh, Sphere
+from transforms3d.euler import euler2mat
+from urdf_parser_py.urdf import URDF, Box, Cylinder, Link, Mesh, Sphere
 
 ROOT_NAME = "root"
 
@@ -100,19 +101,39 @@ class Visualizer:
 
         self._viewer.reset_camera(pos=(1.5, 1.5, 2), look_at=(0, 0, 0.5))
 
+    def _get_visual_origin(self, link: Link) -> np.ndarray:
+        """Get the origin of the visual in the link frame."""
+        if len(link.visuals) == 0:
+            return np.eye(4)
+        if len(link.visuals) != 1:
+            msg = f"Only one visual per link is supported, but link {link.name} has {len(link.visuals)}"
+            raise NotImplementedError(
+                msg,
+            )
+        transform = np.eye(4)
+        visual = link.visuals[0]
+        if visual.origin is None:
+            return transform
+        transform[:3, :3] = euler2mat(
+            visual.origin.rpy[0],
+            visual.origin.rpy[1],
+            visual.origin.rpy[2],
+            axes="rxyz",
+        )
+        transform[0, 3] = visual.origin.xyz[0]
+        transform[1, 3] = visual.origin.xyz[1]
+        transform[2, 3] = visual.origin.xyz[2]
+        return transform
+
     def visualize_robot_state(self, robot_state: RobotState) -> None:
         """Visualize the robot state in the viewer."""
         for link in self._robot.links:
-            link_model = robot_state.robot_model.get_link_model(link.name)
+            robot_state.robot_model.get_link_model(link.name)
             self._viewer.move_nodes(
                 ROOT_NAME,
                 {
                     link.name: robot_state.get_global_link_transform(link.name)
-                    @ (
-                        link_model.get_visual_mesh_origin()
-                        if link_model.get_visual_mesh_filename()
-                        else np.eye(4)
-                    ),
+                    @ self._get_visual_origin(link),
                 },
             )
 
