@@ -1,0 +1,7 @@
+[moveit_configs]
+robot_description = "package://moveit_resources_panda_moveit_config/config/panda.urdf.xacro"
+robot_description_semantic = "package://moveit_resources_panda_moveit_config/config/panda.srdf"
+robot_description_kinematics = "package://moveit_resources_panda_moveit_config/config/kinematics.yaml"
+joint_limits = "robot_moveit_config/config/joint_limits.yaml"
+planning_pipelines.ompl = "package://moveit_resources_panda_moveit_config/config/ompl_planning.yaml"
+trajectory_execution = "package://moveit_resources_panda_moveit_config/config/moveit_controllers.yaml"

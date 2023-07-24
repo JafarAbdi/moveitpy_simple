@@ -1,0 +1,7 @@
+[moveit_configs]
+extend = "custom_moveit_config.toml"
+robot_description = "package://moveit_resources_panda_moveit_config/config/panda.urdf.xacro"
+
+[robot_description]
+robot_name = "panda"
+robot_model_type = "urdf.xacro"
