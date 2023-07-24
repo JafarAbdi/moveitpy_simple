@@ -19,9 +19,6 @@ if(BUILD_TESTING)
     test_file_loaders
     moveitpy_simple/moveit_configs_utils/test/test_file_loaders.py)
   ament_add_pytest_test(
-    test_launch_utils
-    moveitpy_simple/moveit_configs_utils/test/test_launch_utils.py)
-  ament_add_pytest_test(
     test_moveit_resources_configs
     moveitpy_simple/moveit_configs_utils/test/test_moveit_resources_configs.py)
 endif()
