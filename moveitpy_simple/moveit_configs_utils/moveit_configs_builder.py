@@ -168,9 +168,7 @@ def get_full_path(path: str | Path) -> Path:
 def get_package_path(package: str | Path) -> Path:
     """Get the full path to a package."""
     package_path = get_full_path(package)
-    if package_path.is_file():
-        return package_path.parent
-    return package_path
+    return package_path.parent if package_path.is_file() else package_path
 
 
 def load_moveit_configs_toml(file_path: Path) -> dict:
