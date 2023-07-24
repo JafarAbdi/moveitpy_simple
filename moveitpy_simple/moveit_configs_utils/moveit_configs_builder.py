@@ -141,41 +141,49 @@ class PackageNotFoundError(KeyError):
     """Raised when a package is not found."""
 
 
-def get_package_path(package: str | Path) -> Path:
-    """Get the path to a package.
+def get_full_path(path: str | Path) -> Path:
+    """Get the full path to a file/directory.
 
     Args:
-        package: Package name or path to package
+        path: Path to a file/directory
 
     Returns:
-        Path to package
+        Full path to the file/directory
     """
-    if isinstance(package, str):
+    if isinstance(path, str):
         try:
-            package_path = get_package_share_directory(package)
+            full_path = get_package_share_directory(path)
         except ament_packages.PackageNotFoundError as e:
-            msg = f"Package {package} not found"
+            msg = f"Path to a package {path} not found"
             raise PackageNotFoundError(msg) from e
-        return Path(package_path)
-    if isinstance(package, Path):
-        if package.exists():
-            return package
-        msg = f"Package {package} not found"
+        return Path(full_path)
+    if isinstance(path, Path):
+        if path.exists():
+            return path
+        msg = f"Path {path} not found"
         raise PackageNotFoundError(msg)
     return None
 
 
-def load_moveit_configs_toml(package: Path) -> dict:
+def get_package_path(package: str | Path) -> Path:
+    """Get the full path to a package."""
+    package_path = get_full_path(package)
+    if package_path.is_file():
+        return package_path.parent
+    return package_path
+
+
+def load_moveit_configs_toml(file_path: Path) -> dict:
     """Load moveit_configs from a toml file.
 
     Args:
-        package: Path to the directory that contains the moveit_configs.toml file
+        file_path: Path to the file that contains moveit_configs
 
     Returns:
         Loaded configs or an empty dict if moveit_configs.toml doesn't exists
     """
-    if (default_moveit_configs_path := package / "moveit_configs.toml").exists():
-        return toml.load(default_moveit_configs_path)
+    if file_path.is_file() or (file_path := file_path / "moveit_configs.toml").exists():
+        return toml.load(file_path)
     return {}
 
 
@@ -220,12 +228,13 @@ def extend_configs(package_path: Path, configs: dict) -> dict:
         is None
     ):
         return configs
-    base_package = (
+    base_config_path = (
         package_path / base_package
-        if (package_path / base_package).is_dir()
+        if (package_path / base_package).exists()
         else base_package
     )
-    base_package_configs = load_moveit_configs_toml(get_package_path(base_package))
+    base_package = get_package_path(base_config_path)
+    base_package_configs = load_moveit_configs_toml(get_full_path(base_config_path))
     extended_configs = configs.copy()
     extended_moveit_configs = extended_configs[ConfigSections.MOVEIT_CONFIGS]
     extended_moveit_configs.pop(ConfigSections.EXTEND)
@@ -374,10 +383,11 @@ class MoveItConfigsBuilder:
         Args:
             package: The package name or path to the package.
         """
+        moveit_configs_path = get_full_path(package)
         self.package_path = get_package_path(package)
         self._default_configs = extend_configs(
             self.package_path,
-            load_moveit_configs_toml(self.package_path),
+            load_moveit_configs_toml(moveit_configs_path),
         )
 
     def _make_config_entry_from_file(

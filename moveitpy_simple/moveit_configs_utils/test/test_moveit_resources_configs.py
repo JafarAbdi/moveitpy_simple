@@ -345,3 +345,45 @@ def test_load_all():
     assert moveit_configs.sensors_3d
 
     assert not moveit_configs.pilz_cartesian_limits
+
+
+def test_load_with_filename():
+    """Test loading the moveit config from a specific file."""
+    builder = MoveItConfigsBuilder(
+        package=Path(dir_path, "custom_moveit_config.toml"),
+    ).load_all()
+    assert (moveit_configs := builder.to_moveit_configs())
+    assert moveit_configs.robot_description
+    assert moveit_configs.robot_description_semantic
+    assert moveit_configs.robot_description_kinematics
+    assert moveit_configs.joint_limits
+    assert moveit_configs.planning_pipelines
+    assert (
+        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 1
+    )
+    assert moveit_configs.trajectory_execution
+    assert not moveit_configs.sensors_3d
+    assert not moveit_configs.pilz_cartesian_limits
+    assert not moveit_configs.moveit_cpp
+    assert not builder._robot_description_config.mappings
+
+    builder = MoveItConfigsBuilder(
+        package=Path(dir_path, "extend_custom_moveit_config.toml"),
+    ).load_all()
+    assert (moveit_configs := builder.to_moveit_configs())
+    assert moveit_configs.robot_description
+    assert moveit_configs.robot_description_semantic
+    assert moveit_configs.robot_description_kinematics
+    assert moveit_configs.joint_limits
+    assert moveit_configs.planning_pipelines
+    assert (
+        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 1
+    )
+    assert moveit_configs.trajectory_execution
+    assert not moveit_configs.sensors_3d
+    assert not moveit_configs.pilz_cartesian_limits
+    assert not moveit_configs.moveit_cpp
+    assert builder._robot_description_config.mappings == {
+        "robot_name": "panda",
+        "robot_model_type": "urdf.xacro",
+    }
