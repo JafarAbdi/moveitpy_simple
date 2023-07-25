@@ -412,12 +412,14 @@ class MoveItConfigsBuilder:
         self,
         section: ConfigSections,
         option: str | None = None,
+        mappings: dict | None = None,
     ) -> ConfigEntry:
         """Make a ConfigEntry from a section in the moveit_configs.toml file.
 
         Args:
             section: Section name in the moveit_configs.toml file.
             option: A key in the section.
+            mappings: Mappings to be applied to the file.
 
         Returns:
             ConfigEntry: A ConfigEntry object.
@@ -451,14 +453,18 @@ class MoveItConfigsBuilder:
         return ConfigEntry(
             path=self.package_path / normalize_path_value(value),
             # Note we do XXX.get(...) or {} on purpose, we might have a section with a None value
-            mappings=(self._default_configs.get(section) or {}).get(option, {})
-            if option
-            else self._default_configs.get(section, {}),
+            mappings=mappings
+            or (
+                (self._default_configs.get(section) or {}).get(option, {})
+                if option
+                else self._default_configs.get(section, {})
+            ),
         )
 
     def robot_description(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict[SomeSubstitutionsType, SomeSubstitutionsType] | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load robot description.
@@ -478,6 +484,7 @@ class MoveItConfigsBuilder:
         else:
             self._robot_description_config = self._make_config_entry_from_section(
                 ConfigSections.ROBOT_DESCRIPTION,
+                mappings=mappings,
             )
 
         return self
@@ -485,6 +492,7 @@ class MoveItConfigsBuilder:
     def robot_description_semantic(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict[SomeSubstitutionsType, SomeSubstitutionsType] | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load semantic robot description.
@@ -505,6 +513,7 @@ class MoveItConfigsBuilder:
             self._robot_description_semantic_config = (
                 self._make_config_entry_from_section(
                     ConfigSections.ROBOT_DESCRIPTION_SEMANTIC,
+                    mappings=mappings,
                 )
             )
 
@@ -513,6 +522,7 @@ class MoveItConfigsBuilder:
     def robot_description_kinematics(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load IK solver parameters.
@@ -535,6 +545,7 @@ class MoveItConfigsBuilder:
             self._robot_description_kinematics_config = (
                 self._make_config_entry_from_section(
                     ConfigSections.ROBOT_DESCRIPTION_KINEMATICS,
+                    mappings=mappings,
                 )
             )
 
@@ -543,6 +554,7 @@ class MoveItConfigsBuilder:
     def joint_limits(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load joint limits overrides.
@@ -562,6 +574,7 @@ class MoveItConfigsBuilder:
         else:
             self._joint_limits_config = self._make_config_entry_from_section(
                 ConfigSections.JOINT_LIMITS,
+                mappings=mappings,
             )
 
         return self
@@ -569,6 +582,7 @@ class MoveItConfigsBuilder:
     def moveit_cpp(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load MoveItCpp parameters.
@@ -588,12 +602,14 @@ class MoveItConfigsBuilder:
         else:
             self._moveit_cpp_config = self._make_config_entry_from_section(
                 ConfigSections.MOVEIT_CPP,
+                mappings=mappings,
             )
         return self
 
     def trajectory_execution(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load trajectory execution and moveit controller managers' parameters.
@@ -613,6 +629,7 @@ class MoveItConfigsBuilder:
         else:
             self._trajectory_execution_config = self._make_config_entry_from_section(
                 ConfigSections.TRAJECTORY_EXECUTION,
+                mappings=mappings,
             )
 
         return self
@@ -627,6 +644,7 @@ class MoveItConfigsBuilder:
     def sensors(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load sensors_3d parameters.
@@ -646,6 +664,7 @@ class MoveItConfigsBuilder:
         else:
             self._sensors_config = self._make_config_entry_from_section(
                 ConfigSections.SENSORS,
+                mappings=mappings,
             )
         return self
 
@@ -653,6 +672,7 @@ class MoveItConfigsBuilder:
         self,
         pipelines: list[str] | None = None,
         default_planning_pipeline: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load planning pipelines parameters.
@@ -683,6 +703,7 @@ class MoveItConfigsBuilder:
                 self._make_config_entry_from_section(
                     ConfigSections.PLANNING_PIPELINES,
                     planner,
+                    mappings=mappings,
                 )
                 for planner in pipelines
             ]
@@ -708,6 +729,7 @@ class MoveItConfigsBuilder:
     def pilz_cartesian_limits(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load pilz cartesian limits parameters.
@@ -727,6 +749,7 @@ class MoveItConfigsBuilder:
         else:
             self._pilz_cartesian_limits_config = self._make_config_entry_from_section(
                 ConfigSections.PILZ_CARTESIAN_LIMITS,
+                mappings=mappings,
             )
         return self
 
