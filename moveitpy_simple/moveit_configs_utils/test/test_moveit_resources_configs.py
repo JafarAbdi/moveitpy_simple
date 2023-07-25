@@ -141,6 +141,17 @@ def test_robot():
             assert pipeline_config.mappings == {"group_type": "chain"}
     assert builder.to_moveit_configs()
 
+    # Test passing in mappings to the robot description config without overriding the file path
+    builder = MoveItConfigsBuilder(
+        package=Path(dir_path, "robot_moveit_config")
+    ).robot_description(mappings={"robot": "myrobot", "model": "urdf"})
+    assert builder._robot_description_config is not None
+    assert builder._robot_description_config.mappings == {
+        "robot": "myrobot",
+        "model": "urdf",
+    }
+    assert builder.to_moveit_configs()
+
 
 def test_extend():
     """Test extending a MoveItConfigsBuilder with additional configs from a different package."""

@@ -412,6 +412,7 @@ class MoveItConfigsBuilder:
         self,
         section: ConfigSections,
         option: str | None = None,
+        mappings: dict | None = None,
     ) -> ConfigEntry:
         """Make a ConfigEntry from a section in the moveit_configs.toml file.
 
@@ -451,9 +452,12 @@ class MoveItConfigsBuilder:
         return ConfigEntry(
             path=self.package_path / normalize_path_value(value),
             # Note we do XXX.get(...) or {} on purpose, we might have a section with a None value
-            mappings=(self._default_configs.get(section) or {}).get(option, {})
-            if option
-            else self._default_configs.get(section, {}),
+            mappings=mappings
+            or (
+                (self._default_configs.get(section) or {}).get(option, {})
+                if option
+                else self._default_configs.get(section, {})
+            ),
         )
 
     def robot_description(
@@ -478,6 +482,7 @@ class MoveItConfigsBuilder:
         else:
             self._robot_description_config = self._make_config_entry_from_section(
                 ConfigSections.ROBOT_DESCRIPTION,
+                mappings=mappings,
             )
 
         return self
@@ -505,6 +510,7 @@ class MoveItConfigsBuilder:
             self._robot_description_semantic_config = (
                 self._make_config_entry_from_section(
                     ConfigSections.ROBOT_DESCRIPTION_SEMANTIC,
+                    mappings=mappings,
                 )
             )
 
@@ -535,6 +541,7 @@ class MoveItConfigsBuilder:
             self._robot_description_kinematics_config = (
                 self._make_config_entry_from_section(
                     ConfigSections.ROBOT_DESCRIPTION_KINEMATICS,
+                    mappings=mappings,
                 )
             )
 
@@ -562,6 +569,7 @@ class MoveItConfigsBuilder:
         else:
             self._joint_limits_config = self._make_config_entry_from_section(
                 ConfigSections.JOINT_LIMITS,
+                mappings=mappings,
             )
 
         return self
@@ -588,6 +596,7 @@ class MoveItConfigsBuilder:
         else:
             self._moveit_cpp_config = self._make_config_entry_from_section(
                 ConfigSections.MOVEIT_CPP,
+                mappings=mappings,
             )
         return self
 
@@ -613,6 +622,7 @@ class MoveItConfigsBuilder:
         else:
             self._trajectory_execution_config = self._make_config_entry_from_section(
                 ConfigSections.TRAJECTORY_EXECUTION,
+                mappings=mappings,
             )
 
         return self
@@ -646,6 +656,7 @@ class MoveItConfigsBuilder:
         else:
             self._sensors_config = self._make_config_entry_from_section(
                 ConfigSections.SENSORS,
+                mappings=mappings,
             )
         return self
 
@@ -683,6 +694,7 @@ class MoveItConfigsBuilder:
                 self._make_config_entry_from_section(
                     ConfigSections.PLANNING_PIPELINES,
                     planner,
+                    mappings=mappings,
                 )
                 for planner in pipelines
             ]
@@ -727,6 +739,7 @@ class MoveItConfigsBuilder:
         else:
             self._pilz_cartesian_limits_config = self._make_config_entry_from_section(
                 ConfigSections.PILZ_CARTESIAN_LIMITS,
+                mappings=mappings,
             )
         return self
 
