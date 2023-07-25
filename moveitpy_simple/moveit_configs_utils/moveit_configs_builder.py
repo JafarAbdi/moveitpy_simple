@@ -464,6 +464,7 @@ class MoveItConfigsBuilder:
     def robot_description(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict[SomeSubstitutionsType, SomeSubstitutionsType] | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load robot description.
@@ -491,6 +492,7 @@ class MoveItConfigsBuilder:
     def robot_description_semantic(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict[SomeSubstitutionsType, SomeSubstitutionsType] | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load semantic robot description.
@@ -520,6 +522,7 @@ class MoveItConfigsBuilder:
     def robot_description_kinematics(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load IK solver parameters.
@@ -551,6 +554,7 @@ class MoveItConfigsBuilder:
     def joint_limits(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load joint limits overrides.
@@ -578,6 +582,7 @@ class MoveItConfigsBuilder:
     def moveit_cpp(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load MoveItCpp parameters.
@@ -604,6 +609,7 @@ class MoveItConfigsBuilder:
     def trajectory_execution(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load trajectory execution and moveit controller managers' parameters.
@@ -638,6 +644,7 @@ class MoveItConfigsBuilder:
     def sensors(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load sensors_3d parameters.
@@ -665,6 +672,7 @@ class MoveItConfigsBuilder:
         self,
         pipelines: list[str] | None = None,
         default_planning_pipeline: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load planning pipelines parameters.
@@ -721,6 +729,7 @@ class MoveItConfigsBuilder:
     def pilz_cartesian_limits(
         self,
         file_path: str | None = None,
+        *,
         mappings: dict | None = None,
     ) -> "MoveItConfigsBuilder":
         """Load pilz cartesian limits parameters.
