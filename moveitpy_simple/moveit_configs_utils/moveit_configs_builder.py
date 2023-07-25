@@ -419,6 +419,7 @@ class MoveItConfigsBuilder:
         Args:
             section: Section name in the moveit_configs.toml file.
             option: A key in the section.
+            mappings: Mappings to be applied to the file.
 
         Returns:
             ConfigEntry: A ConfigEntry object.
