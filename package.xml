@@ -20,6 +20,7 @@
   <exec_depend>python3-toml</exec_depend>
   <exec_depend>srdfdom</exec_depend>
   <exec_depend>python-transforms3d-pip</exec_depend>
+  <test_depend>ros_testing</test_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>moveit_resources_panda_moveit_config</test_depend>
   <test_depend>python3-pytest</test_depend>
