@@ -10,7 +10,7 @@
   <url type="website">https://github.com/JafarAbdi/moveitpy_simple</url>
   <url type="bugtracker">https://github.com/JafarAbdi/moveitpy_simple/issues</url>
   <url type="repository">https://github.com/JafarAbdi/moveitpy_simple/</url>
-  <depend>rclpy</depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
   <build_depend>moveit_py</build_depend>
   <exec_depend>python3-jinja2</exec_depend>
   <exec_depend>moveit_configs_utils</exec_depend>
