@@ -220,6 +220,26 @@ class RobotComponent(ABC):
         """Plan a trajectory to the goal."""
         return self._planning_component.plan()
 
+    def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
+        """Normalize joint positions."""
+
+        return [
+            self._joint_positions_normalizers[joint_name](position)
+            for joint_name, position in zip(
+                self.joint_names, joint_positions, strict=True
+            )
+        ]
+
+    def denormalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
+        """Denormalize joint positions."""
+
+        return [
+            self._joint_positions_denormalizers[joint_name](position)
+            for joint_name, position in zip(
+                self.joint_names, joint_positions, strict=True
+            )
+        ]
+
 
 class Gripper(RobotComponent):
     """A class that wraps around a gripper joint model group & planning component."""
