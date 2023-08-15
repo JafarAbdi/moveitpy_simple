@@ -350,7 +350,7 @@ def test_load_all():
     assert moveit_configs.joint_limits
     assert moveit_configs.planning_pipelines
     assert (
-        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 4
+        len(moveit_configs.planning_pipelines["planning_pipelines.pipeline_names"]) == 2
     )
     assert moveit_configs.trajectory_execution
     assert moveit_configs.sensors_3d
