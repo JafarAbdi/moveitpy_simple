@@ -5,8 +5,6 @@ robot_description_kinematics = "package://moveit_resources_panda_moveit_config/c
 joint_limits = "package://moveit_resources_panda_moveit_config/config/joint_limits.yaml"
 planning_pipelines.ompl = "package://moveit_resources_panda_moveit_config/config/ompl_planning.yaml"
 # planning_pipelines.chomp = "package://moveit_resources_panda_moveit_config/config/chomp_planning.yaml"
-# planning_pipelines.lerp = "package://moveit_resources_panda_moveit_config/config/lerp_planning.yaml"
-# planning_pipelines.trajopt = "package://moveit_resources_panda_moveit_config/config/trajopt_planning.yaml"
 # trajectory_execution = "package://moveit_resources_panda_moveit_config/config/moveit_controllers.yaml"
 # TODO: This file have incorrect format
 # sensors = "package://moveit_resources_panda_moveit_config/config/sensors_kinect_pointcloud.yaml"
