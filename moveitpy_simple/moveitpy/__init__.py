@@ -512,6 +512,109 @@ class MoveItPySimple:
             ),
         )
 
-    def execute(self, trajectory: RobotTrajectory) -> None:
+    def execute(self, trajectory: RobotTrajectory, blocking: bool = True) -> None:
         """Execute a trajectory."""
-        self._moveit_py.execute(trajectory, controllers=[])
+        self._moveit_py.execute(trajectory, blocking=blocking)
+
+    def get_pose(
+        self, link_name: str, robot_state: list | RobotState | None = None
+    ) -> np.ndarray:
+        """Get the pose of a link."""
+        if robot_state is None:
+            robot_state = self.robot_state()
+        if isinstance(robot_state, RobotState):
+            robot_state.update()
+            return robot_state.get_global_link_transform(link_name)
+        elif isinstance(robot_state, list) or isinstance(robot_state, np.ndarray):
+            assert len(robot_state) == len(
+                self.joint_names
+            ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            rs = RobotState(self.robot_model)
+            rs.set_to_default_values()
+            rs.set_joint_group_active_positions(
+                self.arm.joint_model_group.name,
+                robot_state[: len(self.arm.joint_names)],
+            )
+            rs.set_joint_group_active_positions(
+                self.gripper.joint_model_group.name,
+                robot_state[len(self.arm.joint_names) :],
+            )
+            rs.update()
+            return rs.get_global_link_transform(link_name)
+        else:
+            raise ValueError(
+                f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}",
+            )
+
+    def joint_positions_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+        *,
+        normalize: bool = False,
+    ) -> list[float]:
+        """Get the joint positions from a JointState message."""
+        return np.concatenate(
+            [
+                self.arm.joint_positions_from_joint_state_msg(
+                    joint_state_msg, normalize=normalize
+                ),
+                self.gripper.joint_positions_from_joint_state_msg(
+                    joint_state_msg, normalize=normalize
+                ),
+            ]
+        )
+
+    def is_state_valid(self, robot_state: RobotState | list[float] | np.ndarray):
+        """Check if a robot state is valid."""
+        # We need to make a copy of the planning scene since we will modify it
+        # which avoid changing the main planning scene in the planning scene monitor
+        planning_scene = deepcopy(self.planning_scene())
+        if isinstance(robot_state, RobotState):
+            rs = robot_state
+        elif isinstance(robot_state, list) or isinstance(robot_state, np.ndarray):
+            assert len(robot_state) == len(
+                self.joint_names
+            ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            rs = RobotState(self.robot_model)
+            rs.set_to_default_values()
+            rs.set_joint_group_active_positions(
+                self.arm.joint_model_group.name,
+                robot_state[: len(self.arm.joint_names)],
+            )
+            rs.set_joint_group_active_positions(
+                self.gripper.joint_model_group.name,
+                robot_state[len(self.arm.joint_names) :],
+            )
+        else:
+            raise ValueError(
+                f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}",
+            )
+        rs.update()
+        return (
+            planning_scene.is_state_valid(
+                rs,
+                self.arm.joint_model_group.name,
+            )
+            and planning_scene.is_state_valid(
+                rs,
+                self.gripper.joint_model_group.name,
+            )
+            and self.arm.joint_model_group.satisfies_position_bounds(
+                self.arm.joint_positions_from_robot_state(rs)
+            )
+            and self.gripper.joint_model_group.satisfies_position_bounds(
+                self.gripper.joint_positions_from_robot_state(rs)
+            )
+        )
