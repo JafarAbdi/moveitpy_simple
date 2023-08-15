@@ -297,13 +297,18 @@ class Gripper(RobotComponent):
         self,
         joint_positions: list[float],
         *,
-        normalize: bool = False,
+        normalized: bool = False,
     ) -> None:
-        """Set the goal to a joint positions."""
+        """Set the goal to a joint positions.
+
+        Args:
+            joint_positions: The joint positions.
+            normalized: Whether the joint positions are normalized, defaults to False.
+        """
         goal_joint_positions = {
             joint_name: (
                 self._joint_positions_denormalizers[joint_name](joint_position)
-                if normalize
+                if normalized
                 else joint_position
             )
             for joint_name, joint_position in zip(
@@ -384,19 +389,24 @@ class Arm(RobotComponent):
         self,
         joint_positions: dict[str, float] | list[float],
         *,
-        normalize: bool = False,
+        normalized: bool = False,
     ) -> None:
-        """Set the goal to a joint positions."""
+        """Set the goal to a joint positions.
+
+        Args:
+            joint_positions: The joint positions.
+            normalized: Whether the joint positions are normalized (in [0 1] or [-1 1]), defaults to False.
+        """
         goal_joint_positions = {}
         if isinstance(joint_positions, dict):
-            if normalize:
+            if normalized:
                 for joint_name, joint_position in joint_positions.items():
                     goal_joint_positions[
                         joint_name
                     ] = self._joint_positions_denormalizers[joint_name](joint_position)
             else:
                 goal_joint_positions = joint_positions
-        if isinstance(joint_positions, list):
+        if isinstance(joint_positions, list) or isinstance(joint_positions, np.ndarray):
             for joint_name, joint_position in zip(
                 self.joint_names,
                 joint_positions,
@@ -404,7 +414,7 @@ class Arm(RobotComponent):
             ):
                 goal_joint_positions[joint_name] = (
                     self._joint_positions_denormalizers[joint_name](joint_position)
-                    if normalize
+                    if normalized
                     else joint_position
                 )
         robot_state = deepcopy(self._planning_component.get_start_state())
@@ -446,7 +456,11 @@ class MoveItPySimple:
             )
             end_effectors = srdf.end_effectors
             if len(end_effectors) != 1:
-                msg = "Can't infer the arm and gripper group name from the SRDF, please specify arm_group_name and gripper_group_name"
+                msg = (
+                    "Can't infer the arm and gripper group name from the SRDF, please specify arm_group_name and gripper_group_name"
+                    "Available end effectors: "
+                    f"{[(end_effector.name, end_effector.group, end_effector.parent_group) for end_effector in end_effectors]}"
+                )
                 raise ValueError(
                     msg,
                 )
