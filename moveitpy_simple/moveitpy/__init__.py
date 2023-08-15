@@ -170,12 +170,12 @@ class RobotComponent(ABC):
     def get_named_joint_positions(self, name: str, *, normalize: bool = False) -> list:
         """Get named joint positions."""
         named_joint_positions = self._planning_component.get_named_target_state_values(
-            name
+            name,
         )
         if normalize:
             return [
                 self._joint_positions_normalizers[joint_name](
-                    named_joint_positions[joint_name]
+                    named_joint_positions[joint_name],
                 )
                 for joint_name in self.joint_names
             ]
@@ -222,21 +222,19 @@ class RobotComponent(ABC):
 
     def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
         """Normalize joint positions."""
-
         return [
             self._joint_positions_normalizers[joint_name](position)
             for joint_name, position in zip(
-                self.joint_names, joint_positions, strict=True
+                self.joint_names, joint_positions, strict=True,
             )
         ]
 
     def denormalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
         """Denormalize joint positions."""
-
         return [
             self._joint_positions_denormalizers[joint_name](position)
             for joint_name, position in zip(
-                self.joint_names, joint_positions, strict=True
+                self.joint_names, joint_positions, strict=True,
             )
         ]
 
@@ -406,7 +404,7 @@ class Arm(RobotComponent):
                     ] = self._joint_positions_denormalizers[joint_name](joint_position)
             else:
                 goal_joint_positions = joint_positions
-        if isinstance(joint_positions, list) or isinstance(joint_positions, np.ndarray):
+        if isinstance(joint_positions, list | np.ndarray):
             for joint_name, joint_position in zip(
                 self.joint_names,
                 joint_positions,
@@ -517,7 +515,7 @@ class MoveItPySimple:
         self._moveit_py.execute(trajectory, blocking=blocking)
 
     def get_pose(
-        self, link_name: str, robot_state: list | RobotState | None = None
+        self, link_name: str, robot_state: list | RobotState | None = None,
     ) -> np.ndarray:
         """Get the pose of a link."""
         if robot_state is None:
@@ -525,9 +523,9 @@ class MoveItPySimple:
         if isinstance(robot_state, RobotState):
             robot_state.update()
             return robot_state.get_global_link_transform(link_name)
-        elif isinstance(robot_state, list) or isinstance(robot_state, np.ndarray):
+        elif isinstance(robot_state, list | np.ndarray):
             assert len(robot_state) == len(
-                self.joint_names
+                self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
             assert len(robot_state[: len(self.arm.joint_names)]) == len(
                 self.arm.joint_names,
@@ -548,8 +546,9 @@ class MoveItPySimple:
             rs.update()
             return rs.get_global_link_transform(link_name)
         else:
+            msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
             raise ValueError(
-                f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}",
+                msg,
             )
 
     def joint_positions_from_joint_state_msg(
@@ -562,12 +561,12 @@ class MoveItPySimple:
         return np.concatenate(
             [
                 self.arm.joint_positions_from_joint_state_msg(
-                    joint_state_msg, normalize=normalize
+                    joint_state_msg, normalize=normalize,
                 ),
                 self.gripper.joint_positions_from_joint_state_msg(
-                    joint_state_msg, normalize=normalize
+                    joint_state_msg, normalize=normalize,
                 ),
-            ]
+            ],
         )
 
     def is_state_valid(self, robot_state: RobotState | list[float] | np.ndarray):
@@ -577,9 +576,9 @@ class MoveItPySimple:
         planning_scene = deepcopy(self.planning_scene())
         if isinstance(robot_state, RobotState):
             rs = robot_state
-        elif isinstance(robot_state, list) or isinstance(robot_state, np.ndarray):
+        elif isinstance(robot_state, list | np.ndarray):
             assert len(robot_state) == len(
-                self.joint_names
+                self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
             assert len(robot_state[: len(self.arm.joint_names)]) == len(
                 self.arm.joint_names,
@@ -598,8 +597,9 @@ class MoveItPySimple:
                 robot_state[len(self.arm.joint_names) :],
             )
         else:
+            msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
             raise ValueError(
-                f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}",
+                msg,
             )
         rs.update()
         return (
@@ -612,9 +612,9 @@ class MoveItPySimple:
                 self.gripper.joint_model_group.name,
             )
             and self.arm.joint_model_group.satisfies_position_bounds(
-                self.arm.joint_positions_from_robot_state(rs)
+                self.arm.joint_positions_from_robot_state(rs),
             )
             and self.gripper.joint_model_group.satisfies_position_bounds(
-                self.gripper.joint_positions_from_robot_state(rs)
+                self.gripper.joint_positions_from_robot_state(rs),
             )
         )
