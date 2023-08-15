@@ -34,6 +34,30 @@ def test_moveitpy():
         gripper_group_name="hand",
     )
 
+    assert moveitpy.arm.get_named_joint_positions("ready") == [
+        0.0,
+        -0.785,
+        0.0,
+        -2.356,
+        0.0,
+        1.571,
+        0.785,
+    ]
+    assert np.allclose(
+        moveitpy.arm.get_named_joint_positions("ready", normalize=True),
+        [
+            0.0,
+            -0.445,
+            0.0,
+            -0.537,
+            0.0,
+            -0.157,
+            0.271,
+        ],
+        atol=1e-3,
+    )
+    assert moveitpy.gripper.get_named_joint_positions("open") == [0.035]
+    assert moveitpy.gripper.get_named_joint_positions("open", normalize=True) == [1.0]
     assert moveitpy.arm.joint_names == [
         "panda_joint1",
         "panda_joint2",

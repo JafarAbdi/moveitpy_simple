@@ -167,6 +167,20 @@ class RobotComponent(ABC):
             self._joint_positions_normalizers if normalize else None,
         )
 
+    def get_named_joint_positions(self, name: str, *, normalize: bool = False) -> list:
+        """Get named joint positions."""
+        named_joint_positions = self._planning_component.get_named_target_state_values(
+            name
+        )
+        if normalize:
+            return [
+                self._joint_positions_normalizers[joint_name](
+                    named_joint_positions[joint_name]
+                )
+                for joint_name in self.joint_names
+            ]
+        return [named_joint_positions[joint_name] for joint_name in self.joint_names]
+
     def joint_positions_from_joint_state_msg(
         self,
         joint_state_msg: JointState,
