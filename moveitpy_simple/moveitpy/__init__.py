@@ -194,6 +194,10 @@ class RobotComponent(ABC):
             self._joint_positions_normalizers if normalize else None,
         )
 
+    def set_goal_from_named_state(self, named_state: str) -> None:
+        """Set the goal to a named state."""
+        self._planning_component.set_goal_state(configuration_name=named_state)
+
     def set_start_state(self, robot_state: RobotState | str) -> None:
         """Set the start state."""
         if isinstance(robot_state, str):
@@ -341,10 +345,6 @@ class Arm(RobotComponent):
     # - Max velocity scaling factor
     # - Max acceleration scaling factor
     # TODO: computeCartesianPath -- Need a pybind11 support first
-    def set_goal_from_named_state(self, named_state: str) -> None:
-        """Set the goal to a named state."""
-        self._planning_component.set_goal_state(configuration_name=named_state)
-
     def set_goal_from_robot_state(self, robot_state: RobotState) -> None:
         """Set the goal to a robot state."""
         self._planning_component.set_goal_state(robot_state=robot_state)
