@@ -64,11 +64,15 @@ def create_joint_positions_converters(
             np.interp,
             xp=joint_positions_range,
             fp=value_range.value,
+            right=np.nan,
+            left=np.nan,
         )
         joint_positions_denormalizers[joint_name] = partial(
             np.interp,
             xp=value_range.value,
             fp=joint_positions_range,
+            right=np.nan,
+            left=np.nan,
         )
     return joint_positions_normalizers, joint_positions_denormalizers
 
