@@ -623,7 +623,8 @@ class MoveItPySimple:
         )
 
     def joint_efforts_from_joint_state_msg(
-        self, joint_state_msg: JointState,
+        self,
+        joint_state_msg: JointState,
     ) -> np.ndarray:
         """Get joint efforts from a joint state msg."""
         return np.concatenate(
