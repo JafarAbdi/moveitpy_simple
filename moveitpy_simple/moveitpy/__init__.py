@@ -91,27 +91,21 @@ def joint_positions_from_robot_state(
     return [robot_state.joint_positions[joint_name] for joint_name in joint_names]
 
 
-def joint_positions_from_joint_state_msg(
-    joint_state_msg: JointState,
+def filter_values_by_joint_names(
+    keys: list[str],
+    values: list[float],
     joint_names: list[str],
-    normalizers: dict | None = None,
 ) -> list[float]:
-    """Get joint positions from joint state msg."""
-    positions = []
+    """Filter values by joint names."""
+    filtered_values = []
     for joint_name in joint_names:
         try:
-            index = joint_state_msg.name.index(joint_name)
+            index = keys.index(joint_name)
         except ValueError:
             msg = f"Joint name '{joint_name}' not in joint state msg."
-            raise ValueError(msg) from None
-        positions.append(joint_state_msg.position[index])
-
-    if normalizers is not None:
-        return [
-            normalizers[joint_name](position)
-            for joint_name, position in zip(joint_names, positions, strict=True)
-        ]
-    return positions
+            raise ValueError(msg)
+        filtered_values.append(values[index])
+    return filtered_values
 
 
 class RobotComponent(ABC):
@@ -192,10 +186,43 @@ class RobotComponent(ABC):
         normalize: bool = False,
     ) -> np.ndarray:
         """Get joint positions from a joint state msg."""
-        return joint_positions_from_joint_state_msg(
-            joint_state_msg,
+        positions = filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.position,
             self.joint_names,
-            self._joint_positions_normalizers if normalize else None,
+        )
+
+        if normalize:
+            return [
+                self._joint_positions_normalizers[joint_name](position)
+                for joint_name, position in zip(
+                    self.joint_names,
+                    positions,
+                    strict=True,
+                )
+            ]
+        return positions
+
+    def joint_velocities_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> list[float]:
+        """Get joint velocities from a joint state msg."""
+        return filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.velocity,
+            self.joint_names,
+        )
+
+    def joint_efforts_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> list[float]:
+        """Get joint efforts from a joint state msg."""
+        return filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.effort,
+            self.joint_names,
         )
 
     def set_goal_from_named_state(self, named_state: str) -> None:
@@ -229,7 +256,9 @@ class RobotComponent(ABC):
         return [
             self._joint_positions_normalizers[joint_name](position)
             for joint_name, position in zip(
-                self.joint_names, joint_positions, strict=True,
+                self.joint_names,
+                joint_positions,
+                strict=True,
             )
         ]
 
@@ -238,7 +267,9 @@ class RobotComponent(ABC):
         return [
             self._joint_positions_denormalizers[joint_name](position)
             for joint_name, position in zip(
-                self.joint_names, joint_positions, strict=True,
+                self.joint_names,
+                joint_positions,
+                strict=True,
             )
         ]
 
@@ -424,6 +455,8 @@ class Arm(RobotComponent):
         joint_constraint = construct_joint_constraint(
             robot_state=robot_state,
             joint_model_group=self.joint_model_group,
+            # TODO: Why MoveItPy uses 0.01 as tolerance? MoveIt set it to std::numeric_limits<double>::epsilon() by default
+            tolerance=np.finfo(np.float32).eps,
         )
         self._planning_component.set_goal_state(
             motion_plan_constraints=[joint_constraint],
@@ -516,10 +549,12 @@ class MoveItPySimple:
 
     def execute(self, trajectory: RobotTrajectory, blocking: bool = True) -> None:
         """Execute a trajectory."""
-        self._moveit_py.execute(trajectory, blocking=blocking)
+        return self._moveit_py.execute(trajectory, blocking=blocking)
 
     def get_pose(
-        self, link_name: str, robot_state: list | RobotState | None = None,
+        self,
+        link_name: str,
+        robot_state: list | RobotState | None = None,
     ) -> np.ndarray:
         """Get the pose of a link."""
         if robot_state is None:
@@ -565,11 +600,34 @@ class MoveItPySimple:
         return np.concatenate(
             [
                 self.arm.joint_positions_from_joint_state_msg(
-                    joint_state_msg, normalize=normalize,
+                    joint_state_msg,
+                    normalize=normalize,
                 ),
                 self.gripper.joint_positions_from_joint_state_msg(
-                    joint_state_msg, normalize=normalize,
+                    joint_state_msg,
+                    normalize=normalize,
                 ),
+            ],
+        )
+
+    def joint_velocities_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> np.ndarray:
+        """Get joint velocities from a joint state msg."""
+        return np.concatenate(
+            [
+                self.arm.joint_velocities_from_joint_state_msg(joint_state_msg),
+                self.gripper.joint_velocities_from_joint_state_msg(joint_state_msg),
+            ],
+        )
+
+    def joint_efforts_from_joint_state_msg(self, joint_state_msg: JointState):
+        """Get joint efforts from a joint state msg."""
+        return np.concatenate(
+            [
+                self.arm.joint_efforts_from_joint_state_msg(joint_state_msg),
+                self.gripper.joint_efforts_from_joint_state_msg(joint_state_msg),
             ],
         )
 

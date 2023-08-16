@@ -149,7 +149,7 @@ def test_moveitpy():
 
     goal_joint_positions = [-0.5, -1.0, 0.7, 1.0, 0.0, -0.45, 0.25]
     moveitpy.arm.set_start_state("ready")
-    moveitpy.arm.set_goal_from_joint_positions(goal_joint_positions, normalize=True)
+    moveitpy.arm.set_goal_from_joint_positions(goal_joint_positions, normalized=True)
     assert (plan_result := moveitpy.arm.plan())
     assert np.allclose(
         moveitpy.arm.joint_positions_from_robot_state(
@@ -253,7 +253,7 @@ def test_normalized_gripper_values():
         "panda_arm",
         [-1.5, -1.7628, 2.8, 0.0, 0.0, 3.7525, 0.5],
     )
-    moveitpy.gripper.set_goal(goal_joint_positions, normalize=True)
+    moveitpy.gripper.set_goal(goal_joint_positions, normalized=True)
     assert (plan_result := moveitpy.gripper.plan())
     assert np.allclose(
         moveitpy.gripper.joint_positions_from_robot_state(
@@ -277,7 +277,7 @@ def test_normalized_gripper_values():
         "panda_arm",
         [-1.5, -1.7628, 2.8, 0.0, 0.0, 3.7525, 0.5],
     )
-    moveitpy.gripper.set_goal(goal_joint_positions, normalize=True)
+    moveitpy.gripper.set_goal(goal_joint_positions, normalized=True)
     assert (plan_result := moveitpy.gripper.plan())
     assert np.allclose(
         moveitpy.gripper.joint_positions_from_robot_state(
