@@ -103,7 +103,7 @@ def filter_values_by_joint_names(
             index = keys.index(joint_name)
         except ValueError:
             msg = f"Joint name '{joint_name}' not in joint state msg."
-            raise ValueError(msg)
+            raise ValueError(msg) from None
         filtered_values.append(values[index])
     return filtered_values
 
@@ -547,7 +547,7 @@ class MoveItPySimple:
             ),
         )
 
-    def execute(self, trajectory: RobotTrajectory, blocking: bool = True) -> None:
+    def execute(self, trajectory: RobotTrajectory, *, blocking: bool = True) -> None:
         """Execute a trajectory."""
         return self._moveit_py.execute(trajectory, blocking=blocking)
 
@@ -562,7 +562,7 @@ class MoveItPySimple:
         if isinstance(robot_state, RobotState):
             robot_state.update()
             return robot_state.get_global_link_transform(link_name)
-        elif isinstance(robot_state, list | np.ndarray):
+        elif isinstance(robot_state, list | np.ndarray):  # noqa: RET505
             assert len(robot_state) == len(
                 self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
@@ -586,7 +586,7 @@ class MoveItPySimple:
             return rs.get_global_link_transform(link_name)
         else:
             msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
-            raise ValueError(
+            raise TypeError(
                 msg,
             )
 
@@ -622,7 +622,7 @@ class MoveItPySimple:
             ],
         )
 
-    def joint_efforts_from_joint_state_msg(self, joint_state_msg: JointState):
+    def joint_efforts_from_joint_state_msg(self, joint_state_msg: JointState) -> np.ndarray:
         """Get joint efforts from a joint state msg."""
         return np.concatenate(
             [
@@ -631,7 +631,10 @@ class MoveItPySimple:
             ],
         )
 
-    def is_state_valid(self, robot_state: RobotState | list[float] | np.ndarray):
+    def is_state_valid(
+        self,
+        robot_state: RobotState | list[float] | np.ndarray,
+    ) -> bool:
         """Check if a robot state is valid."""
         # We need to make a copy of the planning scene since we will modify it
         # which avoid changing the main planning scene in the planning scene monitor
@@ -660,7 +663,7 @@ class MoveItPySimple:
             )
         else:
             msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
-            raise ValueError(
+            raise TypeError(
                 msg,
             )
         rs.update()
