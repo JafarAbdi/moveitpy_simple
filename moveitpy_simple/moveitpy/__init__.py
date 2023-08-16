@@ -64,11 +64,15 @@ def create_joint_positions_converters(
             np.interp,
             xp=joint_positions_range,
             fp=value_range.value,
+            right=np.nan,
+            left=np.nan,
         )
         joint_positions_denormalizers[joint_name] = partial(
             np.interp,
             xp=value_range.value,
             fp=joint_positions_range,
+            right=np.nan,
+            left=np.nan,
         )
     return joint_positions_normalizers, joint_positions_denormalizers
 
@@ -87,27 +91,21 @@ def joint_positions_from_robot_state(
     return [robot_state.joint_positions[joint_name] for joint_name in joint_names]
 
 
-def joint_positions_from_joint_state_msg(
-    joint_state_msg: JointState,
+def filter_values_by_joint_names(
+    keys: list[str],
+    values: list[float],
     joint_names: list[str],
-    normalizers: dict | None = None,
 ) -> list[float]:
-    """Get joint positions from joint state msg."""
-    positions = []
+    """Filter values by joint names."""
+    filtered_values = []
     for joint_name in joint_names:
         try:
-            index = joint_state_msg.name.index(joint_name)
+            index = keys.index(joint_name)
         except ValueError:
             msg = f"Joint name '{joint_name}' not in joint state msg."
             raise ValueError(msg) from None
-        positions.append(joint_state_msg.position[index])
-
-    if normalizers is not None:
-        return [
-            normalizers[joint_name](position)
-            for joint_name, position in zip(joint_names, positions, strict=True)
-        ]
-    return positions
+        filtered_values.append(values[index])
+    return filtered_values
 
 
 class RobotComponent(ABC):
@@ -167,6 +165,20 @@ class RobotComponent(ABC):
             self._joint_positions_normalizers if normalize else None,
         )
 
+    def get_named_joint_positions(self, name: str, *, normalize: bool = False) -> list:
+        """Get named joint positions."""
+        named_joint_positions = self._planning_component.get_named_target_state_values(
+            name,
+        )
+        if normalize:
+            return [
+                self._joint_positions_normalizers[joint_name](
+                    named_joint_positions[joint_name],
+                )
+                for joint_name in self.joint_names
+            ]
+        return [named_joint_positions[joint_name] for joint_name in self.joint_names]
+
     def joint_positions_from_joint_state_msg(
         self,
         joint_state_msg: JointState,
@@ -174,11 +186,48 @@ class RobotComponent(ABC):
         normalize: bool = False,
     ) -> np.ndarray:
         """Get joint positions from a joint state msg."""
-        return joint_positions_from_joint_state_msg(
-            joint_state_msg,
+        positions = filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.position,
             self.joint_names,
-            self._joint_positions_normalizers if normalize else None,
         )
+
+        if normalize:
+            return [
+                self._joint_positions_normalizers[joint_name](position)
+                for joint_name, position in zip(
+                    self.joint_names,
+                    positions,
+                    strict=True,
+                )
+            ]
+        return positions
+
+    def joint_velocities_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> list[float]:
+        """Get joint velocities from a joint state msg."""
+        return filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.velocity,
+            self.joint_names,
+        )
+
+    def joint_efforts_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> list[float]:
+        """Get joint efforts from a joint state msg."""
+        return filter_values_by_joint_names(
+            joint_state_msg.name,
+            joint_state_msg.effort,
+            self.joint_names,
+        )
+
+    def set_goal_from_named_state(self, named_state: str) -> None:
+        """Set the goal to a named state."""
+        self._planning_component.set_goal_state(configuration_name=named_state)
 
     def set_start_state(self, robot_state: RobotState | str) -> None:
         """Set the start state."""
@@ -201,6 +250,28 @@ class RobotComponent(ABC):
     def plan(self) -> MotionPlanResponse:
         """Plan a trajectory to the goal."""
         return self._planning_component.plan()
+
+    def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
+        """Normalize joint positions."""
+        return [
+            self._joint_positions_normalizers[joint_name](position)
+            for joint_name, position in zip(
+                self.joint_names,
+                joint_positions,
+                strict=True,
+            )
+        ]
+
+    def denormalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
+        """Denormalize joint positions."""
+        return [
+            self._joint_positions_denormalizers[joint_name](position)
+            for joint_name, position in zip(
+                self.joint_names,
+                joint_positions,
+                strict=True,
+            )
+        ]
 
 
 class Gripper(RobotComponent):
@@ -259,13 +330,18 @@ class Gripper(RobotComponent):
         self,
         joint_positions: list[float],
         *,
-        normalize: bool = False,
+        normalized: bool = False,
     ) -> None:
-        """Set the goal to a joint positions."""
+        """Set the goal to a joint positions.
+
+        Args:
+            joint_positions: The joint positions.
+            normalized: Whether the joint positions are normalized, defaults to False.
+        """
         goal_joint_positions = {
             joint_name: (
                 self._joint_positions_denormalizers[joint_name](joint_position)
-                if normalize
+                if normalized
                 else joint_position
             )
             for joint_name, joint_position in zip(
@@ -327,10 +403,6 @@ class Arm(RobotComponent):
     # - Max velocity scaling factor
     # - Max acceleration scaling factor
     # TODO: computeCartesianPath -- Need a pybind11 support first
-    def set_goal_from_named_state(self, named_state: str) -> None:
-        """Set the goal to a named state."""
-        self._planning_component.set_goal_state(configuration_name=named_state)
-
     def set_goal_from_robot_state(self, robot_state: RobotState) -> None:
         """Set the goal to a robot state."""
         self._planning_component.set_goal_state(robot_state=robot_state)
@@ -350,19 +422,24 @@ class Arm(RobotComponent):
         self,
         joint_positions: dict[str, float] | list[float],
         *,
-        normalize: bool = False,
+        normalized: bool = False,
     ) -> None:
-        """Set the goal to a joint positions."""
+        """Set the goal to a joint positions.
+
+        Args:
+            joint_positions: The joint positions.
+            normalized: Whether the joint positions are normalized (in [0 1] or [-1 1]), defaults to False.
+        """
         goal_joint_positions = {}
         if isinstance(joint_positions, dict):
-            if normalize:
+            if normalized:
                 for joint_name, joint_position in joint_positions.items():
                     goal_joint_positions[
                         joint_name
                     ] = self._joint_positions_denormalizers[joint_name](joint_position)
             else:
                 goal_joint_positions = joint_positions
-        if isinstance(joint_positions, list):
+        if isinstance(joint_positions, list | np.ndarray):
             for joint_name, joint_position in zip(
                 self.joint_names,
                 joint_positions,
@@ -370,7 +447,7 @@ class Arm(RobotComponent):
             ):
                 goal_joint_positions[joint_name] = (
                     self._joint_positions_denormalizers[joint_name](joint_position)
-                    if normalize
+                    if normalized
                     else joint_position
                 )
         robot_state = deepcopy(self._planning_component.get_start_state())
@@ -378,6 +455,8 @@ class Arm(RobotComponent):
         joint_constraint = construct_joint_constraint(
             robot_state=robot_state,
             joint_model_group=self.joint_model_group,
+            # TODO: Why MoveItPy uses 0.01 as tolerance? MoveIt set it to std::numeric_limits<double>::epsilon() by default
+            tolerance=np.finfo(np.float32).eps,
         )
         self._planning_component.set_goal_state(
             motion_plan_constraints=[joint_constraint],
@@ -412,7 +491,11 @@ class MoveItPySimple:
             )
             end_effectors = srdf.end_effectors
             if len(end_effectors) != 1:
-                msg = "Can't infer the arm and gripper group name from the SRDF, please specify arm_group_name and gripper_group_name"
+                msg = (
+                    "Can't infer the arm and gripper group name from the SRDF, please specify arm_group_name and gripper_group_name"
+                    "Available end effectors: "
+                    f"{[(end_effector.name, end_effector.group, end_effector.parent_group) for end_effector in end_effectors]}"
+                )
                 raise ValueError(
                     msg,
                 )
@@ -464,6 +547,142 @@ class MoveItPySimple:
             ),
         )
 
-    def execute(self, trajectory: RobotTrajectory) -> None:
+    def execute(self, trajectory: RobotTrajectory, *, blocking: bool = True) -> None:
         """Execute a trajectory."""
-        self._moveit_py.execute(trajectory, controllers=[])
+        return self._moveit_py.execute(trajectory, blocking=blocking)
+
+    def get_pose(
+        self,
+        link_name: str,
+        robot_state: list | RobotState | None = None,
+    ) -> np.ndarray:
+        """Get the pose of a link."""
+        if robot_state is None:
+            robot_state = self.robot_state()
+        if isinstance(robot_state, RobotState):
+            robot_state.update()
+            return robot_state.get_global_link_transform(link_name)
+        elif isinstance(robot_state, list | np.ndarray):  # noqa: RET505
+            assert len(robot_state) == len(
+                self.joint_names,
+            ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            rs = RobotState(self.robot_model)
+            rs.set_to_default_values()
+            rs.set_joint_group_active_positions(
+                self.arm.joint_model_group.name,
+                robot_state[: len(self.arm.joint_names)],
+            )
+            rs.set_joint_group_active_positions(
+                self.gripper.joint_model_group.name,
+                robot_state[len(self.arm.joint_names) :],
+            )
+            rs.update()
+            return rs.get_global_link_transform(link_name)
+        else:
+            msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
+            raise TypeError(
+                msg,
+            )
+
+    def joint_positions_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+        *,
+        normalize: bool = False,
+    ) -> list[float]:
+        """Get the joint positions from a JointState message."""
+        return np.concatenate(
+            [
+                self.arm.joint_positions_from_joint_state_msg(
+                    joint_state_msg,
+                    normalize=normalize,
+                ),
+                self.gripper.joint_positions_from_joint_state_msg(
+                    joint_state_msg,
+                    normalize=normalize,
+                ),
+            ],
+        )
+
+    def joint_velocities_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> np.ndarray:
+        """Get joint velocities from a joint state msg."""
+        return np.concatenate(
+            [
+                self.arm.joint_velocities_from_joint_state_msg(joint_state_msg),
+                self.gripper.joint_velocities_from_joint_state_msg(joint_state_msg),
+            ],
+        )
+
+    def joint_efforts_from_joint_state_msg(
+        self,
+        joint_state_msg: JointState,
+    ) -> np.ndarray:
+        """Get joint efforts from a joint state msg."""
+        return np.concatenate(
+            [
+                self.arm.joint_efforts_from_joint_state_msg(joint_state_msg),
+                self.gripper.joint_efforts_from_joint_state_msg(joint_state_msg),
+            ],
+        )
+
+    def is_state_valid(
+        self,
+        robot_state: RobotState | list[float] | np.ndarray,
+    ) -> bool:
+        """Check if a robot state is valid."""
+        # We need to make a copy of the planning scene since we will modify it
+        # which avoid changing the main planning scene in the planning scene monitor
+        planning_scene = deepcopy(self.planning_scene())
+        if isinstance(robot_state, RobotState):
+            rs = robot_state
+        elif isinstance(robot_state, list | np.ndarray):
+            assert len(robot_state) == len(
+                self.joint_names,
+            ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            rs = RobotState(self.robot_model)
+            rs.set_to_default_values()
+            rs.set_joint_group_active_positions(
+                self.arm.joint_model_group.name,
+                robot_state[: len(self.arm.joint_names)],
+            )
+            rs.set_joint_group_active_positions(
+                self.gripper.joint_model_group.name,
+                robot_state[len(self.arm.joint_names) :],
+            )
+        else:
+            msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
+            raise TypeError(
+                msg,
+            )
+        rs.update()
+        return (
+            planning_scene.is_state_valid(
+                rs,
+                self.arm.joint_model_group.name,
+            )
+            and planning_scene.is_state_valid(
+                rs,
+                self.gripper.joint_model_group.name,
+            )
+            and self.arm.joint_model_group.satisfies_position_bounds(
+                self.arm.joint_positions_from_robot_state(rs),
+            )
+            and self.gripper.joint_model_group.satisfies_position_bounds(
+                self.gripper.joint_positions_from_robot_state(rs),
+            )
+        )
