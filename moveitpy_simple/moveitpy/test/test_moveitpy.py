@@ -8,6 +8,7 @@ import pytest
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
+from transforms3d.quaternions import quat2mat
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigsBuilder
 from moveitpy_simple.moveitpy import (
@@ -23,7 +24,7 @@ PANDA_NUM_JOINTS = 7
 path_dir = Path(__file__).parent
 
 
-def test_moveitpy():
+def test_moveitpy():  # noqa: PLR0915
     """Test the MoveItPySimple class."""
     moveitpy = MoveItPySimple(
         "moveitpy_simple",
@@ -32,6 +33,24 @@ def test_moveitpy():
         .to_moveit_configs(),
         arm_group_name="panda_arm",
         gripper_group_name="hand",
+    )
+
+    # Test IK
+    goal_pose = [0.25, 0.25, 0.5, 0, 0, 0, 1]
+    joint_positions = moveitpy.arm.ik(goal_pose, "panda_link8")
+    actual_pose = moveitpy.get_pose(
+        "panda_link8",
+        np.concatenate([joint_positions, [0]]),
+    )
+    assert np.allclose(
+        actual_pose[:3, 3],
+        goal_pose[:3],
+        atol=1e-3,
+    )
+    assert np.allclose(
+        actual_pose[:3, :3],
+        quat2mat([goal_pose[6], goal_pose[3], goal_pose[4], goal_pose[5]]),
+        atol=1e-3,
     )
 
     assert moveitpy.arm.get_named_joint_positions("ready") == [

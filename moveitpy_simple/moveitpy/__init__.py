@@ -7,7 +7,7 @@ from functools import partial
 from typing import ClassVar
 
 import numpy as np
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped
 from moveit.core.kinematic_constraints import construct_joint_constraint
 from moveit.core.planning_interface import MotionPlanResponse
 from moveit.core.planning_scene import PlanningScene
@@ -364,6 +364,7 @@ class Arm(RobotComponent):
 
     def __init__(
         self,
+        robot_model: RobotModel,
         joint_model_group: JointModelGroup,
         planning_component: PlanningComponent,
         planning_scene_monitor: PlanningSceneMonitor,
@@ -371,10 +372,12 @@ class Arm(RobotComponent):
         """Initialize the arm.
 
         Args:
+            robot_model: The robot model.
             joint_model_group: The joint model group of the arm.
             planning_component: The planning component of the arm.
             planning_scene_monitor: The planning scene monitor.
         """
+        self._robot_model = robot_model
         super().__init__(
             joint_model_group=joint_model_group,
             planning_component=planning_component,
@@ -462,6 +465,33 @@ class Arm(RobotComponent):
         """Set the goal to a set of constraints."""
         self._planning_component.set_goal_state(motion_plan_constraints=constraints)
 
+    def ik(self, pose: list[float], link_name: str) -> list[float]:
+        """Compute the inverse kinematics of a pose.
+
+        Args:
+            pose: The pose [x, y, z, qx, qy, qz, qw].
+            link_name: The link name.
+
+        Returns:
+            The joint positions.
+        """
+        robot_state = RobotState(self._robot_model)
+        robot_state.set_to_default_values()
+        pose_msg = Pose()
+        pose_msg.position.x = float(pose[0])
+        pose_msg.position.y = float(pose[1])
+        pose_msg.position.z = float(pose[2])
+        pose_msg.orientation.x = float(pose[3])
+        pose_msg.orientation.y = float(pose[4])
+        pose_msg.orientation.z = float(pose[5])
+        pose_msg.orientation.w = float(pose[6])
+        robot_state.set_from_ik(
+            self._planning_component.planning_group_name,
+            pose_msg,
+            link_name,
+        )
+        return self.joint_positions_from_robot_state(robot_state)
+
 
 class MoveItPySimple:
     """A class to simplify the usage of MoveItPy."""
@@ -516,6 +546,7 @@ class MoveItPySimple:
         )
 
         self.arm = Arm(
+            self.robot_model,
             self.robot_model.get_joint_model_group(arm_group_name),
             self._moveit_py.get_planning_component(arm_group_name),
             self._moveit_py.get_planning_scene_monitor(),
