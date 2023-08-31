@@ -465,7 +465,7 @@ class Arm(RobotComponent):
         """Set the goal to a set of constraints."""
         self._planning_component.set_goal_state(motion_plan_constraints=constraints)
 
-    def ik(self, pose: list[float], link_name: str) -> list[float]:
+    def ik(self, pose: list[float], link_name: str) -> list[float] | None:
         """Compute the inverse kinematics of a pose.
 
         Args:
@@ -485,12 +485,13 @@ class Arm(RobotComponent):
         pose_msg.orientation.y = float(pose[4])
         pose_msg.orientation.z = float(pose[5])
         pose_msg.orientation.w = float(pose[6])
-        robot_state.set_from_ik(
+        if robot_state.set_from_ik(
             self._planning_component.planning_group_name,
             pose_msg,
             link_name,
-        )
-        return self.joint_positions_from_robot_state(robot_state)
+        ):
+            return self.joint_positions_from_robot_state(robot_state)
+        return None
 
 
 class MoveItPySimple:

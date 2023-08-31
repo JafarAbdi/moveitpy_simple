@@ -52,6 +52,7 @@ def test_moveitpy():  # noqa: PLR0915
         quat2mat([goal_pose[6], goal_pose[3], goal_pose[4], goal_pose[5]]),
         atol=1e-3,
     )
+    assert moveitpy.arm.ik([5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0], "panda_link8") is None
 
     assert moveitpy.arm.get_named_joint_positions("ready") == [
         0.0,
