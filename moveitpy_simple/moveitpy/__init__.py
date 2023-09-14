@@ -19,6 +19,9 @@ from moveit_msgs.msg import Constraints
 from sensor_msgs.msg import JointState
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigs
+from moveit.core.time_optimal_trajectory_generation import (
+    TimeOptimalTrajectoryGeneration,
+)
 
 
 class ValueRange(Enum):
@@ -623,6 +626,26 @@ class MoveItPySimple:
                 msg,
             )
 
+    def joint_positions_from_robot_state(
+        self,
+        robot_state: RobotState,
+        *,
+        normalize: bool = False,
+    ) -> list[float]:
+        """Get the joint positions from a RobotState object."""
+        return np.concatenate(
+            [
+                self.arm.joint_positions_from_robot_state(
+                    robot_state,
+                    normalize=normalize,
+                ),
+                self.gripper.joint_positions_from_robot_state(
+                    robot_state,
+                    normalize=normalize,
+                ),
+            ],
+        )
+
     def joint_positions_from_joint_state_msg(
         self,
         joint_state_msg: JointState,
@@ -666,6 +689,47 @@ class MoveItPySimple:
                 self.gripper.joint_efforts_from_joint_state_msg(joint_state_msg),
             ],
         )
+
+    def make_robot_state(self, joint_positions: list[float]) -> RobotState:
+        """Create a robot state from joint positions."""
+        assert len(joint_positions) == len(
+            self.arm.joint_names,
+        ), f"Wrong number of joint positions: {joint_positions} != {self.arm.joint_names}"
+        robot_state = RobotState(self.robot_model)
+        robot_state.set_to_default_values()
+        robot_state.set_joint_group_positions(
+            self.arm.joint_model_group.name,
+            joint_positions[: len(self.arm.joint_names)],
+        )
+        # TODO: Support setting gripper joint positions
+        return robot_state
+
+    def make_robot_trajectory(
+        self,
+        joint_trajectory: list[list[float]] | list[RobotState] | list[np.ndarray],
+        resample_dt: float = 0.1,
+    ) -> RobotTrajectory:
+        """Create a robot trajectory from joint positions."""
+        assert len(joint_trajectory) > 0, "Empty trajectory"
+        robot_trajectory = RobotTrajectory(
+            self.robot_model, self.arm.joint_model_group.name
+        )
+        if isinstance(joint_trajectory[0], RobotState):
+            for robot_state in joint_trajectory:
+                robot_trajectory.add_suffix_waypoint(robot_state, 0.0)
+        elif isinstance(joint_trajectory[0], list | np.ndarray):
+            for joint_positions in joint_trajectory:
+                robot_trajectory.add_suffix_waypoint(
+                    self.make_robot_state(joint_positions), 0.0
+                )
+        else:
+            raise TypeError(
+                f"joint_trajectory must be a list of RobotState or a list of list of joint positions -- got {type(joint_trajectory)}"
+            )
+        totg = TimeOptimalTrajectoryGeneration(resample_dt=resample_dt)
+        if not totg.compute_time_stamps(robot_trajectory):
+            return None
+        return robot_trajectory
 
     def is_state_valid(
         self,
