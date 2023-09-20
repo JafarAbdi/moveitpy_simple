@@ -494,6 +494,146 @@ class Arm(RobotComponent):
         return None
 
 
+class FullRobot(RobotComponent):
+    """A class that wraps around a combined panda and hand joint model group & planning component."""
+
+    def __init__(
+        self,
+        robot_model: RobotModel,
+        full_robot_joint_model_group: JointModelGroup,
+        full_robot_planning_component: PlanningComponent,
+        full_robot_planning_scene_monitor: PlanningSceneMonitor,
+        arm_component: RobotComponent,
+        gripper_component: RobotComponent,
+    ) -> None:
+        """Initialize the arm.
+
+        Args:
+            robot_model: The robot model.
+            full_robot_joint_model_group: The joint model group of the panda arm and the hand.
+            full_robot_planning_component: The planning component of the arm.
+            full_robot_planning_scene_monitor: The planning scene monitor.
+            arm_component: The arm robot component.
+            gripper_component: The gripper robot component.
+        """
+        self._robot_model = robot_model
+        self._arm_component = arm_component
+        self._gripper_component = gripper_component
+        super().__init__(
+            joint_model_group=full_robot_joint_model_group,
+            planning_component=full_robot_planning_component,
+            planning_scene_monitor=full_robot_planning_scene_monitor,
+            value_range=ValueRange.UNIT,
+        )
+
+    @property
+    def joint_limits(self) -> list[list[float]]:
+        """Joint limits for the combined joint model group."""
+        # get gripper joint limits
+        gripper_joint_limits = self._gripper_component.joint_limits
+        arm_joint_limits = self._arm_component.joint_limits
+
+        return arm_joint_limits + gripper_joint_limits
+
+    # TODO: We should have a way to specify (Already possible with multi_plan_parameters/single_plan_parameters)
+    # - Planning time
+    # - Number of planning attempts
+    # - Max velocity scaling factor
+    # - Max acceleration scaling factor
+    # TODO: computeCartesianPath -- Need a pybind11 support first
+    def set_goal_from_robot_state(self, robot_state: RobotState) -> None:
+        """Set the goal to a robot state."""
+        self._planning_component.set_goal_state(robot_state=robot_state)
+
+    def set_goal_from_pose_stamped(
+        self,
+        pose_stamped: PoseStamped,
+        link_name: str,
+    ) -> None:
+        """Set the goal to a pose stamped."""
+        self._planning_component.set_goal_state(
+            pose_stamped_msg=pose_stamped,
+            pose_link=link_name,
+        )
+
+    def set_goal_from_joint_positions(
+        self,
+        joint_positions: dict[str, float] | list[float],
+        *,
+        normalized: bool = False,
+    ) -> None:
+        """Set the goal to a joint positions.
+
+        Args:
+            joint_positions: The joint positions.
+            normalized: Whether the joint positions are normalized (in [0 1] or [-1 1]), defaults to False.
+        """
+        goal_joint_positions = {}
+        print("joint names :", self.joint_names)
+        if isinstance(joint_positions, dict):
+            if normalized:
+                for joint_name, joint_position in joint_positions.items():
+                    goal_joint_positions[
+                        joint_name
+                    ] = self._joint_positions_denormalizers[joint_name](joint_position)
+            else:
+                goal_joint_positions = joint_positions
+        if isinstance(joint_positions, list | np.ndarray):
+            for joint_name, joint_position in zip(
+                self.joint_names,
+                joint_positions,
+                strict=True,
+            ):
+                goal_joint_positions[joint_name] = (
+                    self._joint_positions_denormalizers[joint_name](joint_position)
+                    if normalized
+                    else joint_position
+                )
+        robot_state = deepcopy(self._planning_component.get_start_state())
+        robot_state.joint_positions = goal_joint_positions
+        joint_constraint = construct_joint_constraint(
+            robot_state=robot_state,
+            joint_model_group=self.joint_model_group,
+            # TODO: Why MoveItPy uses 0.01 as tolerance? MoveIt set it to std::numeric_limits<double>::epsilon() by default
+            tolerance=np.finfo(np.float32).eps,
+        )
+        self._planning_component.set_goal_state(
+            motion_plan_constraints=[joint_constraint],
+        )
+
+    def set_goal_from_constraints(self, constraints: list[Constraints]) -> None:
+        """Set the goal to a set of constraints."""
+        self._planning_component.set_goal_state(motion_plan_constraints=constraints)
+
+    def ik(self, pose: list[float], link_name: str) -> list[float] | None:
+        """Compute the inverse kinematics of a pose.
+
+        Args:
+            pose: The pose [x, y, z, qx, qy, qz, qw].
+            link_name: The link name.
+
+        Returns:
+            The joint positions.
+        """
+        robot_state = RobotState(self._robot_model)
+        robot_state.set_to_default_values()
+        pose_msg = Pose()
+        pose_msg.position.x = float(pose[0])
+        pose_msg.position.y = float(pose[1])
+        pose_msg.position.z = float(pose[2])
+        pose_msg.orientation.x = float(pose[3])
+        pose_msg.orientation.y = float(pose[4])
+        pose_msg.orientation.z = float(pose[5])
+        pose_msg.orientation.w = float(pose[6])
+        if robot_state.set_from_ik(
+            self._planning_component.planning_group_name,
+            pose_msg,
+            link_name,
+        ):
+            return self.joint_positions_from_robot_state(robot_state)
+        return None
+
+
 class MoveItPySimple:
     """A class to simplify the usage of MoveItPy."""
 
@@ -504,6 +644,7 @@ class MoveItPySimple:
         *,
         arm_group_name: str | None = None,
         gripper_group_name: str | None = None,
+        full_robot_group_name: str | None = None,
         gripper_value_range: ValueRange | None = None,
     ) -> None:
         """Initialize the MoveItPySimple class."""
@@ -538,6 +679,11 @@ class MoveItPySimple:
             raise ValueError(
                 msg,
             )
+        if not self.robot_model.has_joint_model_group(full_robot_group_name):
+            msg = f"Robot model does not have group {full_robot_group_name} defined"
+            raise ValueError(
+                msg,
+            )
 
         self.gripper = Gripper(
             self.robot_model.get_joint_model_group(gripper_group_name),
@@ -551,6 +697,15 @@ class MoveItPySimple:
             self.robot_model.get_joint_model_group(arm_group_name),
             self._moveit_py.get_planning_component(arm_group_name),
             self._moveit_py.get_planning_scene_monitor(),
+        )
+
+        self.full_robot = FullRobot(
+            self.robot_model,
+            self.robot_model.get_joint_model_group(full_robot_group_name),
+            self._moveit_py.get_planning_component(full_robot_group_name),
+            self._moveit_py.get_planning_scene_monitor(),
+            self.arm,
+            self.gripper,
         )
 
     @property
