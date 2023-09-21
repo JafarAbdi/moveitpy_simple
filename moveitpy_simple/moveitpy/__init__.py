@@ -497,7 +497,7 @@ class Arm(RobotComponent):
 class FullRobot(RobotComponent):
     """A class that wraps around a combined panda and hand joint model group & planning component."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         robot_model: RobotModel,
         full_robot_joint_model_group: JointModelGroup,
@@ -569,7 +569,6 @@ class FullRobot(RobotComponent):
             normalized: Whether the joint positions are normalized (in [0 1] or [-1 1]), defaults to False.
         """
         goal_joint_positions = {}
-        print("joint names :", self.joint_names)
         if isinstance(joint_positions, dict):
             if normalized:
                 for joint_name, joint_position in joint_positions.items():
