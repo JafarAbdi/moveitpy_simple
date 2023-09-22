@@ -16,6 +16,7 @@ from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
 from moveit.planning import MoveItPy, PlanningComponent, PlanningSceneMonitor
 from moveit_msgs.msg import Constraints
+from scipy.spatial.transform import Rotation
 from sensor_msgs.msg import JointState
 
 from moveitpy_simple.moveit_configs_utils import MoveItConfigs
@@ -583,8 +584,24 @@ class MoveItPySimple:
         self,
         link_name: str,
         robot_state: list | RobotState | None = None,
-    ) -> np.ndarray:
-        """Get the pose of a link."""
+        *,
+        is_matrix_format: bool = False,
+    ) -> np.ndarray | None:
+        """Get the pose of a link.
+
+        Args:
+            link_name: The name of the link to get pose for
+            robot_state: The robot state instance
+            is_matrix_format: If True, then pose is returned in matrix form, else pose is
+                                returned in position + quaternion form
+
+        Returns:
+            Pose in position [x,y,z] + quaternion [x,y,z,w] format (default) or in transformation matrix form.
+            If in position + quaternion: The first three elements represent (x,y,z) position and
+            the next four quaternion (x,y,z,w) in that order.
+
+
+        """
         if robot_state is None:
             robot_state = self.robot_state()
         if isinstance(robot_state, RobotState):
@@ -611,7 +628,14 @@ class MoveItPySimple:
                 robot_state[len(self.arm.joint_names) :],
             )
             rs.update()
-            return rs.get_global_link_transform(link_name)
+            trans_matrix = rs.get_global_link_transform(link_name)
+            if is_matrix_format:
+                return trans_matrix
+
+            rot = Rotation.from_matrix(trans_matrix[:3, :3])
+            quat = rot.as_quat()
+            pos = trans_matrix[:3, 3]
+            return np.concatenate([pos, quat])
         else:
             msg = f"robot_state must be either a RobotState or a list of joint positions -- got {type(robot_state)}"
             raise TypeError(
