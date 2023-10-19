@@ -60,10 +60,11 @@ def create_joint_positions_converters(
         joint_ranges,
         strict=True,
     ):
+        sorted_indices = np.argsort(joint_positions_range)
         joint_positions_normalizers[joint_name] = partial(
             np.interp,
-            xp=joint_positions_range,
-            fp=value_range.value,
+            xp=np.take(joint_positions_range, sorted_indices),
+            fp=np.take(value_range.value, sorted_indices),
         )
         joint_positions_denormalizers[joint_name] = partial(
             np.interp,
