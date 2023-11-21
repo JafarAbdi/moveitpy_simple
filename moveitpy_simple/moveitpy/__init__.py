@@ -397,6 +397,17 @@ class Arm(RobotComponent):
             for joint_limit in self.joint_model_group.active_joint_model_bounds
         ]
 
+    @property
+    def velocity_limits(self) -> list[float]:
+        """Velocity limits for the joint model group."""
+        return [
+            [
+                joint_limit[0].min_velocity,
+                joint_limit[0].max_velocity,
+            ]
+            for joint_limit in self.joint_model_group.active_joint_model_bounds
+        ]
+
     # TODO: We should have a way to specify (Already possible with multi_plan_parameters/single_plan_parameters)
     # - Planning time
     # - Number of planning attempts
