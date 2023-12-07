@@ -723,7 +723,8 @@ class MoveItPySimple:
         """Create a robot trajectory from joint positions."""
         assert len(joint_trajectory) > 0, "Empty trajectory"
         robot_trajectory = RobotTrajectory(
-            self.robot_model, self.arm.joint_model_group.name,
+            self.robot_model,
+            self.arm.joint_model_group.name,
         )
         if isinstance(joint_trajectory[0], RobotState):
             for robot_state in joint_trajectory:
@@ -731,7 +732,8 @@ class MoveItPySimple:
         elif isinstance(joint_trajectory[0], list | np.ndarray):
             for joint_positions in joint_trajectory:
                 robot_trajectory.add_suffix_waypoint(
-                    self.make_robot_state(joint_positions), 0.0,
+                    self.make_robot_state(joint_positions),
+                    0.0,
                 )
         else:
             msg = f"joint_trajectory must be a list of RobotState or a list of list of joint positions -- got {type(joint_trajectory)}"
