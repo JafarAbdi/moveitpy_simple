@@ -795,3 +795,12 @@ class MoveItPySimple:
                 self.gripper.joint_positions_from_robot_state(rs),
             )
         )
+
+    def split_arm_and_gripper_values(
+        self, values: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Split arm and gripper values."""
+        return (
+            values[: len(self.arm.joint_names)],
+            values[-len(self.gripper.joint_names) :],
+        )
