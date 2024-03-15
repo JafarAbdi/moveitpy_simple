@@ -17,7 +17,12 @@ from moveit.core.robot_trajectory import RobotTrajectory
 from moveit.core.time_optimal_trajectory_generation import (
     TimeOptimalTrajectoryGeneration,
 )
-from moveit.planning import MoveItPy, PlanningComponent, PlanningSceneMonitor
+from moveit.planning import (
+    MoveItPy,
+    PlanningComponent,
+    PlanningSceneMonitor,
+    PlanRequestParameters,
+)
 from moveit_msgs.msg import Constraints
 from sensor_msgs.msg import JointState
 
@@ -247,9 +252,11 @@ class RobotComponent(ABC):
         """Get the start state."""
         return self._planning_component.get_start_state()
 
-    def plan(self) -> MotionPlanResponse:
+    def plan(
+        self, plan_parameters: PlanRequestParameters | None = None,
+    ) -> MotionPlanResponse:
         """Plan a trajectory to the goal."""
-        return self._planning_component.plan()
+        return self._planning_component.plan(single_plan_parameters=plan_parameters)
 
     def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
         """Normalize joint positions."""
@@ -723,7 +730,8 @@ class MoveItPySimple:
         """Create a robot trajectory from joint positions."""
         assert len(joint_trajectory) > 0, "Empty trajectory"
         robot_trajectory = RobotTrajectory(
-            self.robot_model, self.arm.joint_model_group.name,
+            self.robot_model,
+            self.arm.joint_model_group.name,
         )
         if isinstance(joint_trajectory[0], RobotState):
             for robot_state in joint_trajectory:
@@ -731,7 +739,8 @@ class MoveItPySimple:
         elif isinstance(joint_trajectory[0], list | np.ndarray):
             for joint_positions in joint_trajectory:
                 robot_trajectory.add_suffix_waypoint(
-                    self.make_robot_state(joint_positions), 0.0,
+                    self.make_robot_state(joint_positions),
+                    0.0,
                 )
         else:
             msg = f"joint_trajectory must be a list of RobotState or a list of list of joint positions -- got {type(joint_trajectory)}"
@@ -797,7 +806,7 @@ class MoveItPySimple:
         )
 
     def split_arm_and_gripper_values(
-        self, values: np.ndarray
+        self, values: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Split arm and gripper values."""
         return (
