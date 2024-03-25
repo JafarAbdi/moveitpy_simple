@@ -245,19 +245,21 @@ def extend_configs(package_path: Path, configs: dict) -> dict:
             ).get(missing_section)
         ) is not None:
             if isinstance(missing_section_value, Path | str):
-                extended_moveit_configs[
-                    missing_section
-                ] = base_package / normalize_path_value(missing_section_value)
+                extended_moveit_configs[missing_section] = (
+                    base_package / normalize_path_value(missing_section_value)
+                )
             elif isinstance(missing_section_value, dict):
                 resolved_missing_section_value = {
-                    key: base_package / normalize_path_value(value)
-                    if isinstance(value, Path | str)
-                    else normalize_path_value(value)
+                    key: (
+                        base_package / normalize_path_value(value)
+                        if isinstance(value, Path | str)
+                        else normalize_path_value(value)
+                    )
                     for key, value in missing_section_value.items()
                 }
-                extended_moveit_configs[
-                    missing_section
-                ] = resolved_missing_section_value
+                extended_moveit_configs[missing_section] = (
+                    resolved_missing_section_value
+                )
             else:
                 msg = f"Invalid type for {missing_section} in {base_package} moveit_configs.toml"
                 raise TypeError(
