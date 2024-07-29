@@ -253,7 +253,8 @@ class RobotComponent(ABC):
         return self._planning_component.get_start_state()
 
     def plan(
-        self, plan_parameters: PlanRequestParameters | None = None,
+        self,
+        plan_parameters: PlanRequestParameters | None = None,
     ) -> MotionPlanResponse:
         """Plan a trajectory to the goal."""
         return self._planning_component.plan(single_plan_parameters=plan_parameters)
@@ -459,9 +460,9 @@ class Arm(RobotComponent):
         if isinstance(joint_positions, dict):
             if normalized:
                 for joint_name, joint_position in joint_positions.items():
-                    goal_joint_positions[
-                        joint_name
-                    ] = self._joint_positions_denormalizers[joint_name](joint_position)
+                    goal_joint_positions[joint_name] = (
+                        self._joint_positions_denormalizers[joint_name](joint_position)
+                    )
             else:
                 goal_joint_positions = joint_positions
         if isinstance(joint_positions, list | np.ndarray):
@@ -806,7 +807,8 @@ class MoveItPySimple:
         )
 
     def split_arm_and_gripper_values(
-        self, values: np.ndarray,
+        self,
+        values: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Split arm and gripper values."""
         return (
