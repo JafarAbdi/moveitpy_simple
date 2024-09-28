@@ -14,9 +14,6 @@ from moveit.core.planning_scene import PlanningScene
 from moveit.core.robot_model import JointModelGroup, RobotModel
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
-from moveit.core.time_optimal_trajectory_generation import (
-    TimeOptimalTrajectoryGeneration,
-)
 from moveit.planning import (
     MoveItPy,
     PlanningComponent,
@@ -757,8 +754,10 @@ class MoveItPySimple:
             raise TypeError(
                 msg,
             )
-        totg = TimeOptimalTrajectoryGeneration(resample_dt=resample_dt)
-        if not totg.compute_time_stamps(robot_trajectory):
+
+        if not robot_trajectory.apply_totg_time_parameterization(
+            resample_dt=resample_dt,
+        ):
             return None
         return robot_trajectory
 
