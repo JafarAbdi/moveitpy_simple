@@ -122,4 +122,3 @@ convention = "google"
 "moveitpy_simple/moveit_configs_utils/moveit_configs_utils/__init__.py" = ["F401"]
 "moveitpy_simple/moveit_configs_utils/test/test_file_loaders.py" = ["INP001", "ANN201", "PLR2004"]
 "moveitpy_simple/moveitpy/test/test_moveitpy.py" = ["INP001", "ANN201", "PLR2004", "SLF001"]
-"example/visualizer.py" = ["INP001"]
