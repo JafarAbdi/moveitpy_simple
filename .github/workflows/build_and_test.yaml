@@ -18,6 +18,7 @@ jobs:
       ROS_DISTRO: humble
       ROS_REPO: main
       DOCKER_IMAGE: ghcr.io/jafarabdi/moveit-builder:humble-2024-08-28
+      UPSTREAM_WORKSPACE: moveitpy_simple.repos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
