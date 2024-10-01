@@ -254,7 +254,10 @@ class RobotComponent(ABC):
         plan_parameters: PlanRequestParameters | None = None,
     ) -> MotionPlanResponse:
         """Plan a trajectory to the goal."""
-        return self._planning_component.plan(single_plan_parameters=plan_parameters)
+        # TODO: Why do I have to copy here? It's segfaulting if I don't
+        return deepcopy(
+            self._planning_component.plan(single_plan_parameters=plan_parameters),
+        )
 
     def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
         """Normalize joint positions."""
