@@ -24,6 +24,7 @@
   <test_depend>ros_testing</test_depend>
   <test_depend>ament_copyright</test_depend>
   <test_depend>moveit_resources_panda_moveit_config</test_depend>
+  <test_depend>moveit_resources_fanuc_moveit_config</test_depend>
   <test_depend>python3-pytest</test_depend>
   <export>
     <build_type>ament_cmake</build_type>
