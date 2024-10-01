@@ -38,8 +38,9 @@ repos:
       - id: requirements-txt-fixer
       - id: sort-simple-yaml
       - id: trailing-whitespace
+  # Python
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.7
+    rev: v0.6.8
     hooks:
       - id: ruff
         args: ['--output-format=full', '--fix', '--config', 'pyproject.toml']
