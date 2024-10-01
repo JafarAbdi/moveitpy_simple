@@ -14,9 +14,6 @@ from moveit.core.planning_scene import PlanningScene
 from moveit.core.robot_model import JointModelGroup, RobotModel
 from moveit.core.robot_state import RobotState
 from moveit.core.robot_trajectory import RobotTrajectory
-from moveit.core.time_optimal_trajectory_generation import (
-    TimeOptimalTrajectoryGeneration,
-)
 from moveit.planning import (
     MoveItPy,
     PlanningComponent,
@@ -257,7 +254,10 @@ class RobotComponent(ABC):
         plan_parameters: PlanRequestParameters | None = None,
     ) -> MotionPlanResponse:
         """Plan a trajectory to the goal."""
-        return self._planning_component.plan(single_plan_parameters=plan_parameters)
+        # TODO: Why do I have to copy here? It's segfaulting if I don't
+        return deepcopy(
+            self._planning_component.plan(single_plan_parameters=plan_parameters),
+        )
 
     def normalize_joint_positions(self, joint_positions: list[float]) -> list[float]:
         """Normalize joint positions."""
@@ -524,7 +524,7 @@ class Arm(RobotComponent):
 class MoveItPySimple:
     """A class to simplify the usage of MoveItPy."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         node_name: str,
         moveit_configs: MoveItConfigs,
@@ -621,11 +621,17 @@ class MoveItPySimple:
             assert len(robot_state) == len(
                 self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
-            assert len(robot_state[: len(self.arm.joint_names)]) == len(
-                self.arm.joint_names,
+            assert (
+                len(robot_state[: len(self.arm.joint_names)])
+                == len(
+                    self.arm.joint_names,
+                )
             ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
-            assert len(robot_state[len(self.arm.joint_names) :]) == len(
-                self.gripper.joint_names,
+            assert (
+                len(robot_state[len(self.arm.joint_names) :])
+                == len(
+                    self.gripper.joint_names,
+                )
             ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
             rs = RobotState(self.robot_model)
             rs.set_to_default_values()
@@ -711,8 +717,11 @@ class MoveItPySimple:
 
     def make_robot_state(self, joint_positions: list[float]) -> RobotState:
         """Create a robot state from joint positions."""
-        assert len(joint_positions) == len(
-            self.arm.joint_names,
+        assert (
+            len(joint_positions)
+            == len(
+                self.arm.joint_names,
+            )
         ), f"Wrong number of joint positions: {joint_positions} != {self.arm.joint_names}"
         robot_state = RobotState(self.robot_model)
         robot_state.set_to_default_values()
@@ -748,8 +757,10 @@ class MoveItPySimple:
             raise TypeError(
                 msg,
             )
-        totg = TimeOptimalTrajectoryGeneration(resample_dt=resample_dt)
-        if not totg.compute_time_stamps(robot_trajectory):
+
+        if not robot_trajectory.apply_totg_time_parameterization(
+            resample_dt=resample_dt,
+        ):
             return None
         return robot_trajectory
 
@@ -767,11 +778,17 @@ class MoveItPySimple:
             assert len(robot_state) == len(
                 self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
-            assert len(robot_state[: len(self.arm.joint_names)]) == len(
-                self.arm.joint_names,
+            assert (
+                len(robot_state[: len(self.arm.joint_names)])
+                == len(
+                    self.arm.joint_names,
+                )
             ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
-            assert len(robot_state[len(self.arm.joint_names) :]) == len(
-                self.gripper.joint_names,
+            assert (
+                len(robot_state[len(self.arm.joint_names) :])
+                == len(
+                    self.gripper.joint_names,
+                )
             ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
             rs = RobotState(self.robot_model)
             rs.set_to_default_values()
