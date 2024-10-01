@@ -755,7 +755,7 @@ class MoveItConfigsBuilder:
             )
         return self
 
-    def load_all(self) -> "MoveItConfigsBuilder":
+    def load_all(self) -> "MoveItConfigsBuilder":  # noqa: C901
         """Load all configs.
 
         Returns:
@@ -806,7 +806,7 @@ class MoveItConfigsBuilder:
             # This makes it possible to use the builder with MoveItPy while still being able to
             # use a ros2 launch's substitution types.
             if (self._robot_description_config.mappings is None) or all(
-                (isinstance(key, str) and isinstance(value, (str, list)))
+                (isinstance(key, str) and isinstance(value, str | list))
                 for key, value in self._robot_description_config.mappings.items()
             ):
                 moveit_configs.robot_description = {
@@ -829,7 +829,7 @@ class MoveItConfigsBuilder:
         if self._robot_description_semantic_config is not None:
             # Support both MoveItPy and ros2 launch substitution types similar to robot_description
             if (self._robot_description_semantic_config.mappings is None) or all(
-                (isinstance(key, str) and isinstance(value, (str, list)))
+                (isinstance(key, str) and isinstance(value, str | list))
                 for key, value in self._robot_description_semantic_config.mappings.items()
             ):
                 moveit_configs.robot_description_semantic = {
