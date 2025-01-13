@@ -621,18 +621,16 @@ class MoveItPySimple:
             assert len(robot_state) == len(
                 self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
-            assert (
-                len(robot_state[: len(self.arm.joint_names)])
-                == len(
-                    self.arm.joint_names,
-                )
-            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
-            assert (
-                len(robot_state[len(self.arm.joint_names) :])
-                == len(
-                    self.gripper.joint_names,
-                )
-            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), (
+                f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            )
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), (
+                f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            )
             rs = RobotState(self.robot_model)
             rs.set_to_default_values()
             rs.set_joint_group_active_positions(
@@ -717,12 +715,11 @@ class MoveItPySimple:
 
     def make_robot_state(self, joint_positions: list[float]) -> RobotState:
         """Create a robot state from joint positions."""
-        assert (
-            len(joint_positions)
-            == len(
-                self.arm.joint_names,
-            )
-        ), f"Wrong number of joint positions: {joint_positions} != {self.arm.joint_names}"
+        assert len(joint_positions) == len(
+            self.arm.joint_names,
+        ), (
+            f"Wrong number of joint positions: {joint_positions} != {self.arm.joint_names}"
+        )
         robot_state = RobotState(self.robot_model)
         robot_state.set_to_default_values()
         robot_state.set_joint_group_positions(
@@ -778,18 +775,16 @@ class MoveItPySimple:
             assert len(robot_state) == len(
                 self.joint_names,
             ), f"Wrong number of joint positions: {robot_state} != {self.joint_names}"
-            assert (
-                len(robot_state[: len(self.arm.joint_names)])
-                == len(
-                    self.arm.joint_names,
-                )
-            ), f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
-            assert (
-                len(robot_state[len(self.arm.joint_names) :])
-                == len(
-                    self.gripper.joint_names,
-                )
-            ), f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            assert len(robot_state[: len(self.arm.joint_names)]) == len(
+                self.arm.joint_names,
+            ), (
+                f"Wrong number of joint positions for arm: {robot_state[: len(self.arm.joint_names)]} != {self.arm.joint_names}"
+            )
+            assert len(robot_state[len(self.arm.joint_names) :]) == len(
+                self.gripper.joint_names,
+            ), (
+                f"Wrong number of joint positions for gripper: {robot_state[len(self.arm.joint_names) :]} != {self.gripper.joint_names}"
+            )
             rs = RobotState(self.robot_model)
             rs.set_to_default_values()
             rs.set_joint_group_active_positions(
